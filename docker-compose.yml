@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react_frontend
+    ports:
+      - "3000:5173"
+    networks:
+      - app_network
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app:cached
+      - /app/node_modules
+
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fastapi_backend
+    ports:
+      - "8000:8000"
+    networks:
+      - app_network
+    volumes:
+      - ./backend/app:/app  # mount code for auto-reload
+
+networks:
+  app_network:
+    driver: bridge
