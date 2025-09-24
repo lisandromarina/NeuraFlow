@@ -13,12 +13,18 @@ def list_workflows(repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_rep
     return service.list_workflows()
 
 @router.post("/", response_model=Workflow)
-def create_workflow(workflow: Workflow, repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)):
+def create_workflow(
+    workflow: Workflow, 
+    repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)
+):
     service = WorkflowService(repo)
     return service.create_workflow(name=workflow.name, description=workflow.description)
 
 @router.get("/{workflow_id}", response_model=Workflow)
-def get_workflow(workflow_id: int, repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)):
+def get_workflow(
+    workflow_id: int, 
+    repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)
+):
     service = WorkflowService(repo)
     wf = service.get_workflow(workflow_id)
     if not wf:
@@ -42,7 +48,10 @@ def update_workflow(
     return updated
 
 @router.delete("/{workflow_id}")
-def delete_workflow(workflow_id: int, repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)):
+def delete_workflow(
+    workflow_id: int, 
+    repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)
+):
     service = WorkflowService(repo)
     success = service.delete_workflow(workflow_id)
     if not success:
