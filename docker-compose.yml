@@ -28,8 +28,28 @@ services:
     networks:
       - app_network
     volumes:
-      - ./backend/app:/app  # mount code for auto-reload
+      - ./backend/app:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mydatabase
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    networks:
+      - app_network
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 networks:
   app_network:
     driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,3 +1,4 @@
+from api.v1 import workflow_routes
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,6 +12,8 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+
+app.include_router(workflow_routes.router)
 
 @app.get("/")
 def root():

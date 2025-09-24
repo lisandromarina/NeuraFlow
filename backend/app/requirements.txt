@@ -1,2 +1,5 @@
 fastapi
 uvicorn
+SQLAlchemy
+psycopg2-binary
+pydantic==2.8.0
