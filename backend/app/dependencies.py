@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
+from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from models.db_models.workflow_db import Base
 
 DATABASE_URL="postgresql://postgres:postgres@postgres:5432/mydatabase"
@@ -28,3 +29,6 @@ def get_workflow_repository(db = Depends(get_db_session)):
 
 def get_node_repository(db = Depends(get_db_session)):
     return SqlAlchemyNodeRepository(db)
+
+def get_workflow_node_repository(db = Depends(get_db_session)):
+    return SqlAlchemyWorkflowNodeRepository(db)

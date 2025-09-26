@@ -43,24 +43,28 @@ class SqlAlchemyWorkflowNodeRepository:
     # ------------------------
     # Update
     # ------------------------
-    def update(self, workflow_node: WorkflowNodeSchema) -> None:
-        node_db = self.session.query(WorkflowNodeDB).get(workflow_node.id)
+    def update(self, workflow_node: WorkflowNodeSchema) -> WorkflowNodeDB:
+        node_db = self.session.get(WorkflowNodeDB, workflow_node.id)
         if not node_db:
-            return
+            return None
         node_db.name = workflow_node.name
         node_db.position_x = workflow_node.position_x
         node_db.position_y = workflow_node.position_y
         node_db.custom_config = workflow_node.custom_config
         self.session.commit()
+        self.session.refresh(node_db)  # ensures SQLAlchemy object is up-to-date
+        return node_db
 
     # ------------------------
     # Delete
     # ------------------------
-    def delete(self, node_id: int) -> None:
+    def delete(self, node_id: int) -> bool:
         node_db = self.session.query(WorkflowNodeDB).get(node_id)
-        if node_db:
-            self.session.delete(node_db)
-            self.session.commit()
+        if not node_db:
+            return False
+        self.session.delete(node_db)
+        self.session.commit()
+        return True
 
     def delete_by_workflow(self, workflow_id: int) -> None:
         self.session.query(WorkflowNodeDB).filter(
