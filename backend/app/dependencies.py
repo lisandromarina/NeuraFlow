@@ -1,10 +1,11 @@
 from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from models.db_models.workflow_db import Base
 
-DATABASE_URL = "postgresql+psycopg2://postgres:postgres@postgres:5432/mydatabase"
+DATABASE_URL="postgresql://postgres:postgres@postgres:5432/mydatabase"
 
 # 1. Create engine and session
 engine = create_engine(DATABASE_URL, echo=True)
@@ -24,3 +25,6 @@ def get_db_session():
 # 4. Repository provider (after get_db_session is defined)
 def get_workflow_repository(db = Depends(get_db_session)):
     yield SqlAlchemyWorkflowRepository(db)
+
+def get_node_repository(db = Depends(get_db_session)):
+    return SqlAlchemyNodeRepository(db)
