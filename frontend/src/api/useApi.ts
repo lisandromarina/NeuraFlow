@@ -1,6 +1,6 @@
 import { useState } from "react";
 import apiClient from "./apiClient";
-import { AxiosRequestConfig } from "axios";
+import type { AxiosRequestConfig } from "axios";
 
 interface UseApiReturn<T> {
   callApi: (endpoint: string, method?: "GET" | "POST" | "PUT" | "DELETE", data?: any, config?: AxiosRequestConfig) => Promise<T>;

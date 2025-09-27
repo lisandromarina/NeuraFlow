@@ -1,9 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useNodesState, useEdgesState, addEdge } from "@xyflow/react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
 import PlaceholderNodeDemo from "../placeholderdemo";
 import BaseHandle from "../base-handler-demo";
+import { useApi } from "../../api/useApi";
+
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
@@ -53,11 +55,14 @@ const initialEdges = [
 ];
 
 const WorkflowContainer: React.FC = () => {
+  const [nodesDB, setNodesDB] = useState([]);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   // track viewport to account for pan/zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+
+  const { callApi, loading, error } = useApi();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
@@ -93,6 +98,44 @@ const WorkflowContainer: React.FC = () => {
 
     setNodes((nds) => [...nds, newNode]);
   };
+
+  const fetchWorkflowNodes = async (workflowId: number) => {
+    try {
+      const workflow = await callApi(`/workflow/${workflowId}/full`, "GET");
+
+      if (!workflow) return;
+      console.log(workflow)
+      // Map backend nodes to React Flow nodes
+      const mappedNodes = workflow.nodes.map((node: any) => ({
+        id: node.id.toString(),
+        type: node.node_type === "baseHandle" ? "baseHandle" : "placeholderNode", // adjust as needed
+        position: { x: node.position_x, y: node.position_y },
+        data: { label: node.name, ...node.custom_config },
+      }));
+
+      // Map connections to edges
+      const mappedEdges = workflow.connections.map((conn: any) => ({
+        id: `${conn.from_step_id}->${conn.to_step_id}`,
+        source: conn.from_step_id.toString(),
+        target: conn.to_step_id.toString(),
+        type: "simplebezier",
+        animated: true,
+      }));
+
+      setNodes(mappedNodes);
+      setEdges(mappedEdges);
+    } catch (err) {
+      console.error("Failed to fetch workflow nodes:", err);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchWorkflowNodes(1);
+  }, []);
+
+  if (loading) return <p>Loading workflow...</p>;
+  if (error) return <p>Error loading workflow: {error.message}</p>;
 
   return (
     <div
