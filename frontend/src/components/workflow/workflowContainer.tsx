@@ -107,7 +107,7 @@ const WorkflowContainer: React.FC = () => {
       }));
 
       const mappedEdges = workflow.connections.map((conn: any) => ({
-        id: `${conn.from_step_id}->${conn.to_step_id}`,
+        id: conn.id,
         source: conn.from_step_id.toString(),
         target: conn.to_step_id.toString(),
         type: "simplebezier",
@@ -166,38 +166,98 @@ const WorkflowContainer: React.FC = () => {
   };
 
   const handleConnect = async (params: any) => {
-    // 1️⃣ Optimistically update local state
-    const tempEdge: WorkflowEdgeType = {
-      id: `${params.source}->${params.target}`,
-      source: params.source,
-      target: params.target,
-      type: "simplebezier",
-      animated: true,
-    };
+    // 0️⃣ Check for duplicates first
+    const duplicate = edges.find(
+      (edge) =>
+        edge.source === params.source && edge.target === params.target
+    );
 
-    setEdges((eds) => [...eds, tempEdge]);
+    if (duplicate) {
+      console.warn("Connection already exists, skipping creation.");
+      return;
+    }
 
     try {
-      // 2️⃣ Persist connection in the backend
+      // 1️⃣ Create the connection in the backend first
       const createdConnection = await createWorkflowConnection({
         workflow_id: 1, // fixed for now
         from_step_id: parseInt(params.source),
         to_step_id: parseInt(params.target),
-        condition: null, // optional
+        condition: null,
       });
 
+      // 2️⃣ Validate backend response
       if (!createdConnection || !createdConnection.id) {
-        console.error("Backend returned invalid data, removing temp edge");
-        // Rollback: Remove temp edge
-        setEdges((eds) => eds.filter((edge) => edge.id !== tempEdge.id));
-      } else {
-        console.log("Connection successfully saved:", createdConnection);
+        console.error("Backend returned invalid data, edge not added.");
+        return;
       }
+
+      // 3️⃣ If successful, update UI
+      const newEdge: WorkflowEdgeType = {
+        id: createdConnection.id, // React Flow edge ID
+        source: params.source,
+        target: params.target,
+        type: "simplebezier",
+        animated: true,
+      };
+
+      setEdges((eds) => [...eds, newEdge]);
+      console.log("Connection successfully saved:", createdConnection);
+
     } catch (error) {
       console.error("Failed to create connection:", error);
-      // Rollback: Remove temp edge
-      setEdges((eds) => eds.filter((edge) => edge.id !== tempEdge.id));
     }
+  };
+
+  const deleteWorkflowNode = async (nodeId: number) => {
+    try {
+      // Step 1: Delete the node
+      await callApi(`/workflow-nodes/${nodeId}`, "DELETE");
+      console.log(`Node ${nodeId} deleted successfully`);
+    } catch (err) {
+      console.error(`Failed to delete node ${nodeId}:`, err);
+      throw err; // bubble up error so we don't remove it from UI incorrectly
+    }
+  };
+
+  const handleNodesDelete = async (deletedNodes: WorkflowNodeType[]) => {
+    for (const node of deletedNodes) {
+      const relatedEdges = edges.filter(
+        (edge) => edge.source === node.id || edge.target === node.id
+      );
+
+      // Delete all related connections
+      for (const edge of relatedEdges) {
+        await deleteWorkflowConnection(edge.id); // edge.id is backend ID
+      }
+
+      // Delete the node itself
+      await deleteWorkflowNode(parseInt(node.id));
+    }
+
+    // Update UI locally
+    setNodes((nds) => nds.filter((n) => !deletedNodes.some((dn) => dn.id === n.id)));
+    setEdges((eds) =>
+      eds.filter(
+        (edge) =>
+          !deletedNodes.some((node) => edge.source === node.id || edge.target === node.id)
+      )
+    );
+  };
+
+  const handleEdgesDelete = async (deletedEdges: WorkflowEdgeType[]) => {
+    console.log(deletedEdges)
+    for (const edge of deletedEdges) {
+      try {
+        // Use backend ID if available, fallback to parsing
+        await deleteWorkflowConnection(edge.backendId || edge.id);
+      } catch (err) {
+        console.error(`Failed to delete connection for edge ${edge.id}:`, err);
+      }
+    }
+
+    // Remove from local state
+    setEdges((eds) => eds.filter((e) => !deletedEdges.some((de) => de.id === e.id)));
   };
 
   // Handle node drag stop
@@ -231,6 +291,8 @@ const WorkflowContainer: React.FC = () => {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={handleConnect}
+      onNodesDelete={handleNodesDelete}
+      onEdgesDelete={handleEdgesDelete}
       onInit={(instance) => setRfInstance(instance)}
       onViewportChange={(v) => setViewport(v)}
       onNodeDragStop={handleNodeDragStop}

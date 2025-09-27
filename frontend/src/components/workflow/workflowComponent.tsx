@@ -9,6 +9,8 @@ interface WorkflowComponentProps {
   onNodesChange: (changes: any) => void;
   onEdgesChange: (changes: any) => void;
   onConnect: (connection: any) => void;
+  onNodesDelete?: (deletedNodes: any[]) => void;    // NEW
+  onEdgesDelete?: (deletedEdges: any[]) => void;    // NEW
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
   onNodeDragStop?: (event: any, node: any) => void;
@@ -21,6 +23,8 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   onNodesChange,
   onEdgesChange,
   onConnect,
+  onNodesDelete,
+  onEdgesDelete,
   onInit,
   onViewportChange,
   onNodeDragStop
@@ -34,6 +38,8 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodesDelete={onNodesDelete}    // ✅ Handles node deletion
+        onEdgesDelete={onEdgesDelete}    // ✅ Handles edge deletion
         fitView
         onInit={onInit}
         onViewportChange={onViewportChange}
