@@ -106,6 +106,7 @@ def execute_workflow(
 ):
     service = WorkflowService(repo)
     workflow = service.get_workflow(workflow_id)
+
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
