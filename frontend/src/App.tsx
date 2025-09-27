@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button"
 
 function App() {
   const [data, setData] = useState("");
@@ -13,9 +14,8 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
-      <h1>Frontend + Backend Test</h1>
-      <p>Backend says: {data}</p>
+    <div className="flex min-h-svh flex-col items-center justify-center">
+      <Button>Click me</Button>
     </div>
   );
 }
