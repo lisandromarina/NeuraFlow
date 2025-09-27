@@ -43,16 +43,23 @@ class SqlAlchemyWorkflowNodeRepository:
     # ------------------------
     # Update
     # ------------------------
-    def update(self, workflow_node: WorkflowNodeSchema) -> WorkflowNodeDB:
+    def update(self, workflow_node: WorkflowNodeSchema) -> Optional[WorkflowNodeDB]:
         node_db = self.session.get(WorkflowNodeDB, workflow_node.id)
         if not node_db:
             return None
-        node_db.name = workflow_node.name
-        node_db.position_x = workflow_node.position_x
-        node_db.position_y = workflow_node.position_y
-        node_db.custom_config = workflow_node.custom_config
+
+        # Update only if the field is not None
+        if workflow_node.name is not None:
+            node_db.name = workflow_node.name
+        if workflow_node.position_x is not None:
+            node_db.position_x = workflow_node.position_x
+        if workflow_node.position_y is not None:
+            node_db.position_y = workflow_node.position_y
+        if workflow_node.custom_config is not None:
+            node_db.custom_config = workflow_node.custom_config
+
         self.session.commit()
-        self.session.refresh(node_db)  # ensures SQLAlchemy object is up-to-date
+        self.session.refresh(node_db)
         return node_db
 
     # ------------------------

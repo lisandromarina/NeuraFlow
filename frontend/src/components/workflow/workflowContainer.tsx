@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNodesState, useEdgesState, addEdge } from "@xyflow/react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
@@ -6,114 +6,47 @@ import PlaceholderNodeDemo from "../placeholderdemo";
 import BaseHandle from "../base-handler-demo";
 import { useApi } from "../../api/useApi";
 
-
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
-  baseHandle: BaseHandle
+  baseHandle: BaseHandle,
 };
 
-const initialNodes = [
-  {
-    id: "1",
-    data: { label: "Original Node" },
-    position: { x: 75, y: 0 },
-    type: "baseHandle",
-  },
-  {
-    id: "2",
-    data: { label: "Original Node" },
-    position: { x: 0, y: 150 },
-    type: "baseHandle",
-  },
-  {
-    id: "3",
-    data: { label: "Original Node" },
-    position: { x: 150, y: 150 },
-    type: "baseHandle",
-  },
-];
+type WorkflowNodeType = {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, any>;
+};
 
-const initialEdges = [
-  {
-    id: "1=>2",
-    source: "1",
-    target: "2",
-    sourceHandle: "source-1", // must match the output handle on Node 1
-    targetHandle: "target-1", // must match the input handle on Node 2
-    type: "simplebezier",     // simplebezier line ensures top->bottom connection
-    animated: true,
-  },
-    {
-    id: "2=>3",
-    source: "1",
-    target: "3",
-    sourceHandle: "source-1", // must match the output handle on Node 1
-    targetHandle: "target-1", // must match the input handle on Node 2
-    type: "simplebezier",     // simplebezier line ensures top->bottom connection
-    animated: true,
-  },
-];
+type WorkflowEdgeType = {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+  animated?: boolean;
+  [key: string]: any;
+};
 
 const WorkflowContainer: React.FC = () => {
-  const [nodesDB, setNodesDB] = useState([]);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  // track viewport to account for pan/zoom
+const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeType>([]);
+const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeType>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
-
-  const { callApi, loading, error } = useApi();
-
+  const { callApi } = useApi();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
-  const onConnect = (connection: any) => {
-    setEdges((eds) => addEdge(connection, eds));
-  };
-
-  // Drag over handler
-  const onDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  };
-
-  // Drop handler
-  const onDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    const type = event.dataTransfer.getData("application/reactflow");
-    const bounds = reactFlowWrapper.current?.getBoundingClientRect();
-    if (!type || !bounds) return;
-
-    // Calculate position accounting for pan/zoom
-    const position = {
-      x: (event.clientX - bounds.left - viewport.x) / viewport.zoom,
-      y: (event.clientY - bounds.top - viewport.y) / viewport.zoom,
-    };
-
-    const newNode = {
-      id: `${nodes.length + 1}`, // simple incremental ID
-      type,
-      position,
-      data: { label: `${type} ${nodes.length + 1}` },
-    };
-
-    setNodes((nds) => [...nds, newNode]);
-  };
-
+  // Fetch workflow nodes from backend
   const fetchWorkflowNodes = async (workflowId: number) => {
     try {
       const workflow = await callApi(`/workflow/${workflowId}/full`, "GET");
-
       if (!workflow) return;
-      console.log(workflow)
-      // Map backend nodes to React Flow nodes
+
       const mappedNodes = workflow.nodes.map((node: any) => ({
         id: node.id.toString(),
-        type: node.node_type === "baseHandle" ? "baseHandle" : "placeholderNode", // adjust as needed
+        type: node.node_type,
         position: { x: node.position_x, y: node.position_y },
         data: { label: node.name, ...node.custom_config },
       }));
 
-      // Map connections to edges
       const mappedEdges = workflow.connections.map((conn: any) => ({
         id: `${conn.from_step_id}->${conn.to_step_id}`,
         source: conn.from_step_id.toString(),
@@ -129,20 +62,39 @@ const WorkflowContainer: React.FC = () => {
     }
   };
 
+  // Update workflow node backend safely
+  const updateWorkflowNode = async (
+    workflowNodeId: number,
+    updates: Partial<{ name: string; position_x: number; position_y: number; custom_config: Record<string, any> }>
+  ) => {
+    try {
+      await callApi(`/workflow-nodes/${workflowNodeId}`, "PUT", updates);
+    } catch (err) {
+      console.error("Failed to update workflow node:", err);
+    }
+  };
+
+  // Handle node drag stop
+  const handleNodeDragStop = (event: any, node: any) => {
+    // 1️⃣ Optimistically update local state
+    setNodes((nds) =>
+      nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
+    );
+    
+    updateWorkflowNode(node.id, {
+      position_x: node.position.x,
+      position_y: node.position.y,
+    });
+  };
 
   useEffect(() => {
     fetchWorkflowNodes(1);
   }, []);
 
-  if (loading) return <p>Loading workflow...</p>;
-  if (error) return <p>Error loading workflow: {error.message}</p>;
-
   return (
     <div
       className="w-full h-full"
       ref={reactFlowWrapper}
-      onDrop={onDrop}
-      onDragOver={onDragOver}
     >
       <WorkflowComponent
         nodes={nodes}
@@ -150,9 +102,10 @@ const WorkflowContainer: React.FC = () => {
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onInit={(instance) => setViewport(instance.viewport)} // get initial viewport
-        onViewportChange={(v) => setViewport(v)} // track pan/zoom
+        onConnect={(connection) => setEdges((eds) => addEdge(connection, eds))}
+        onInit={(instance) => setViewport(instance.viewport)}
+        onViewportChange={(v) => setViewport(v)}
+        onNodeDragStop={handleNodeDragStop}
       />
     </div>
   );

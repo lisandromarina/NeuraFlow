@@ -21,7 +21,6 @@ export const useApi = <T = any>(): UseApiReturn<T> => {
     setLoading(true);
     setError(null);
     try {
-      console.log(data)
       const response = await apiClient({
         url: endpoint,
         method,

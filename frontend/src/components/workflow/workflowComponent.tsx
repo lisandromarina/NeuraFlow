@@ -11,6 +11,7 @@ interface WorkflowComponentProps {
   onConnect: (connection: any) => void;
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
+  onNodeDragStop?: (event: any, node: any) => void;
 }
 
 const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
@@ -22,6 +23,7 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   onConnect,
   onInit,
   onViewportChange,
+  onNodeDragStop
 }) => {
   return (
     <div className="w-full h-full">
@@ -34,7 +36,8 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onConnect={onConnect}
         fitView
         onInit={onInit}
-        onViewportChange={onViewportChange} 
+        onViewportChange={onViewportChange}
+        onNodeDragStop={onNodeDragStop} 
       >
         <Background />
       </ReactFlow>

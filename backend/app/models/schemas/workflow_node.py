@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Dict, Optional
 
 class WorkflowNodeBase(BaseModel):
     name: str
@@ -19,10 +19,10 @@ class WorkflowNodeCreate(BaseModel):
     model_config = {"from_attributes": True}  # for from_orm
 
 class WorkflowNodeUpdate(BaseModel):
-    name: Optional[str]
-    position_x: float   # <-- float instead of int
-    position_y: float
-    custom_config: Optional[dict]
+    name: Optional[str] = None
+    position_x: Optional[float] = None
+    position_y: Optional[float] = None
+    custom_config: Optional[Dict] = None
 
 class WorkflowNodeSchema(BaseModel):
     id: int
