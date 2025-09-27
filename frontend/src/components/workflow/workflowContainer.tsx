@@ -3,17 +3,31 @@ import { useNodesState, useEdgesState, addEdge } from "@xyflow/react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
 import PlaceholderNodeDemo from "../placeholderdemo";
+import BaseHandle from "../base-handler-demo";
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
+  baseHandle: BaseHandle
 };
 
 const initialNodes = [
   {
     id: "1",
     data: { label: "Original Node" },
-    position: { x: 0, y: 0 },
-    type: "placeholderNode",
+    position: { x: 75, y: 0 },
+    type: "baseHandle",
+  },
+  {
+    id: "2",
+    data: { label: "Original Node" },
+    position: { x: 0, y: 150 },
+    type: "baseHandle",
+  },
+  {
+    id: "3",
+    data: { label: "Original Node" },
+    position: { x: 150, y: 150 },
+    type: "baseHandle",
   },
 ];
 
@@ -22,7 +36,18 @@ const initialEdges = [
     id: "1=>2",
     source: "1",
     target: "2",
-    type: "default",
+    sourceHandle: "source-1", // must match the output handle on Node 1
+    targetHandle: "target-1", // must match the input handle on Node 2
+    type: "simplebezier",     // simplebezier line ensures top->bottom connection
+    animated: true,
+  },
+    {
+    id: "2=>3",
+    source: "1",
+    target: "3",
+    sourceHandle: "source-1", // must match the output handle on Node 1
+    targetHandle: "target-1", // must match the input handle on Node 2
+    type: "simplebezier",     // simplebezier line ensures top->bottom connection
     animated: true,
   },
 ];
