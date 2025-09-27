@@ -1,0 +1,1 @@
+export const CHAT_ENDPOINT = "http://localhost:8000/agent/chat";
