@@ -26,33 +26,47 @@ const items = [
   }
 ]
 
+const workflowNodes = [
+  { title: "Trigger Node", type: "placeholderNode" },
+  { title: "Action Node", type: "placeholderNode" },
+  { title: "Condition Node", type: "placeholderNode" },
+];
+
+const onDragStart = (event: React.DragEvent, nodeType: string) => {
+  event.dataTransfer.setData("application/reactflow", nodeType);
+  event.dataTransfer.effectAllowed = "move";
+};
+
 export function AppSidebar() {
   return (
-    <Sidebar className="bg-neutral-100 border-neutral-300" >
+    <Sidebar className="bg-neutral-100 border-neutral-300">
       <SidebarContent>
-        <SidebarGroup >
+        <SidebarGroup>
           <ThemeModeToggle />
         </SidebarGroup>
+
         <SidebarGroup>
+          <SidebarGroupLabel>Nodes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {workflowNodes.map((node) => (
+                <SidebarMenuItem key={node.type}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                    <div
+                      draggable
+                      onDragStart={(e) => onDragStart(e, node.type)}
+                      className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-200 rounded"
+                    >
+                      {/* Optional icon */}
+                      <span>{node.title}</span>
+                    </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-            <SidebarGroupLabel>Chats</SidebarGroupLabel>
-        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

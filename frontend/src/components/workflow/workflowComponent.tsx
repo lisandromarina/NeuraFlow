@@ -9,6 +9,8 @@ interface WorkflowComponentProps {
   onNodesChange: (changes: any) => void;
   onEdgesChange: (changes: any) => void;
   onConnect: (connection: any) => void;
+  onInit?: (instance: any) => void;
+  onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
 }
 
 const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
@@ -18,6 +20,8 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   onNodesChange,
   onEdgesChange,
   onConnect,
+  onInit,
+  onViewportChange,
 }) => {
   return (
     <div className="w-full h-full">
@@ -29,6 +33,8 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         fitView
+        onInit={onInit}
+        onViewportChange={onViewportChange} 
       >
         <Background />
       </ReactFlow>
