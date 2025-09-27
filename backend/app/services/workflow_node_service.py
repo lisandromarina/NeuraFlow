@@ -22,9 +22,7 @@ class WorkflowNodeService:
     def create_node(self, node_data: WorkflowNodeCreate) -> WorkflowNode:
         if not node_data.name or len(node_data.name.strip()) == 0:
             raise ValueError("Node name cannot be empty.")
-        if node_data.position_x < 0 or node_data.position_y < 0:
-            raise ValueError("Node positions must be positive values.")
-
+        
         return self.repo.add(node_data)
 
     # ------------------------

@@ -27,9 +27,9 @@ const items = [
 ]
 
 const workflowNodes = [
-  { title: "Trigger Node", type: "placeholderNode" },
-  { title: "Action Node", type: "placeholderNode" },
-  { title: "Condition Node", type: "placeholderNode" },
+  { title: "Trigger Node", type: "baseHandle" },
+  { title: "Action Node", type: "baseHandle" },
+  { title: "Condition Node", type: "baseHandle" },
 ];
 
 const onDragStart = (event: React.DragEvent, nodeType: string) => {
