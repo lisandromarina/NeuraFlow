@@ -150,6 +150,56 @@ const WorkflowContainer: React.FC = () => {
     }
   };
 
+  const createWorkflowConnection = async (connection: {
+    workflow_id: number;
+    from_step_id: number;
+    to_step_id: number;
+    condition: string | null;
+  }) => {
+    try {
+      const createdConnection = await callApi(`/workflow-connections/`, "POST", connection);
+      return createdConnection;
+    } catch (err) {
+      console.error("Failed to create workflow connection:", err);
+      return null;
+    }
+  };
+
+  const handleConnect = async (params: any) => {
+    // 1️⃣ Optimistically update local state
+    const tempEdge: WorkflowEdgeType = {
+      id: `${params.source}->${params.target}`,
+      source: params.source,
+      target: params.target,
+      type: "simplebezier",
+      animated: true,
+    };
+
+    setEdges((eds) => [...eds, tempEdge]);
+
+    try {
+      // 2️⃣ Persist connection in the backend
+      const createdConnection = await createWorkflowConnection({
+        workflow_id: 1, // fixed for now
+        from_step_id: parseInt(params.source),
+        to_step_id: parseInt(params.target),
+        condition: null, // optional
+      });
+
+      if (!createdConnection || !createdConnection.id) {
+        console.error("Backend returned invalid data, removing temp edge");
+        // Rollback: Remove temp edge
+        setEdges((eds) => eds.filter((edge) => edge.id !== tempEdge.id));
+      } else {
+        console.log("Connection successfully saved:", createdConnection);
+      }
+    } catch (error) {
+      console.error("Failed to create connection:", error);
+      // Rollback: Remove temp edge
+      setEdges((eds) => eds.filter((edge) => edge.id !== tempEdge.id));
+    }
+  };
+
   // Handle node drag stop
   const handleNodeDragStop = (event: any, node: any) => {
     // 1️⃣ Optimistically update local state
@@ -180,7 +230,7 @@ const WorkflowContainer: React.FC = () => {
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnect={(connection) => setEdges((eds) => addEdge(connection, eds))}
+      onConnect={handleConnect}
       onInit={(instance) => setRfInstance(instance)}
       onViewportChange={(v) => setViewport(v)}
       onNodeDragStop={handleNodeDragStop}
