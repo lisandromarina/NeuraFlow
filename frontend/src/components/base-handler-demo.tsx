@@ -3,19 +3,27 @@ import { Position } from "@xyflow/react";
 
 import { BaseHandle } from "@/components/base-handle";
 import { BaseNode, BaseNodeContent } from "@/components/base-node";
- 
-const BaseHandleDemo = memo(() => {
+
+interface BaseHandleDemoProps {
+  data: {
+    content: string;
+    [key: string]: any;
+  };
+}
+
+const BaseHandleDemo: React.FC<BaseHandleDemoProps> = memo(({ data  }) => {
   return (
     <BaseNode>
       <BaseNodeContent>
         {/* Input handle */}
         <BaseHandle id="target-1" type="target" position={Position.Top} />
-        <div>Node Content</div>
+        {/* Display content from prop */}
+        <div>{data.actualType}</div>
         {/* Output handle */}
         <BaseHandle id="source-1" type="source" position={Position.Bottom} />
       </BaseNodeContent>
     </BaseNode>
   );
 });
- 
+
 export default BaseHandleDemo;

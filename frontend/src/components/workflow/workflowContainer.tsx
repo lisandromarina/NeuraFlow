@@ -8,7 +8,7 @@ import { useApi } from "../../api/useApi";
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
-  baseHandle: BaseHandle,
+  MultiplyNode: BaseHandle,
 };
 
 type WorkflowNodeType = {
@@ -48,7 +48,7 @@ const WorkflowContainer: React.FC = () => {
     const nodeData = event.dataTransfer.getData("application/reactflow");
     if (!nodeData) return;
 
-    const { type: nodeType, id: nodeId } = JSON.parse(nodeData);
+    const { type: actualType, id: nodeId } = JSON.parse(nodeData);
 
     const position = {
       x: (event.clientX - reactFlowBounds.left - viewport.x) / viewport.zoom,
@@ -58,7 +58,7 @@ const WorkflowContainer: React.FC = () => {
     try {
       const createdNode = await createWorkflowNode({
         workflow_id: 1,
-        node_id: nodeId,  // <-- use the original sidebar id here
+        node_id: nodeId,
         name: "Send Welcome Email",
         position_x: position.x,
         position_y: position.y,
@@ -71,18 +71,17 @@ const WorkflowContainer: React.FC = () => {
       if (createdNode && createdNode.id) {
         const newNode: WorkflowNodeType = {
           id: createdNode.id.toString(),
-          type: nodeType,  // <-- use type from sidebar
+          type: "MultiplyNode", // always use BaseHandle mapping
           position: { x: createdNode.position_x, y: createdNode.position_y },
           data: {
             label: createdNode.name,
             customConfig: createdNode.custom_config,
+            actualType, // store the real node type here
           },
         };
 
         setNodes((nds) => [...nds, newNode]);
         console.log("Node successfully added:", newNode);
-      } else {
-        console.error("Failed to create node: API returned invalid data", createdNode);
       }
     } catch (error) {
       console.error("Error creating node:", error);
@@ -96,9 +95,13 @@ const WorkflowContainer: React.FC = () => {
 
       const mappedNodes = workflow.nodes.map((node: any) => ({
         id: node.id.toString(),
-        type: node.node_type,
+        type: "MultiplyNode", // always use BaseHandleDemo
         position: { x: node.position_x, y: node.position_y },
-        data: { label: node.name, ...node.custom_config },
+        data: {
+          content: node.name,            // main label
+          customConfig: node.custom_config, 
+          actualType: node.node_type,    // pass backend type here
+        },
       }));
 
       const mappedEdges = workflow.connections.map((conn: any) => ({
