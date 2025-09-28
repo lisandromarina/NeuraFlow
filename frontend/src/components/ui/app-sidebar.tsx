@@ -28,7 +28,7 @@ const items = [
 
 const workflowNodes = [
   { title: "Trigger Node", type: "baseHandle" },
-  { title: "Action Node", type: "baseHandle" },
+  { title: "Send Email Connector", type: "SendEmail" },
   { title: "Condition Node", type: "baseHandle" },
 ];
 

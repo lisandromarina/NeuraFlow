@@ -58,7 +58,7 @@ const WorkflowContainer: React.FC = () => {
       // 1️⃣ Call backend to create node
       const createdNode = await createWorkflowNode({
         workflow_id: 1, // Fixed for now, adjust later
-        node_id: 1,     // Adjust if your backend expects different node types
+        node_id: 2,     // Adjust if your backend expects different node types
         name: "Send Welcome Email",
         position_x: position.x,
         position_y: position.y,
@@ -228,7 +228,7 @@ const WorkflowContainer: React.FC = () => {
 
       // Delete all related connections
       for (const edge of relatedEdges) {
-        await deleteWorkflowConnection(edge.id); // edge.id is backend ID
+        await deleteWorkflowConnection(Number(edge.id)); 
       }
 
       // Delete the node itself
@@ -243,6 +243,15 @@ const WorkflowContainer: React.FC = () => {
           !deletedNodes.some((node) => edge.source === node.id || edge.target === node.id)
       )
     );
+  };
+
+  const deleteWorkflowConnection = async (connectionId: number) => {
+    try {
+      await callApi(`/workflow-connections/${connectionId}`, "DELETE");
+      console.log(`Connection ${connectionId} deleted successfully`);
+    } catch (err) {
+      console.error(`Failed to delete connection ${connectionId}:`, err);
+    }
   };
 
   const handleEdgesDelete = async (deletedEdges: WorkflowEdgeType[]) => {

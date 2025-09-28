@@ -49,8 +49,6 @@ class WorkflowExecutor:
         # Run the node
         result = executor.run(config, context)
         print(f"Node {node.id} finished, result: {result}")
-        if 'template' in config:
-            print(f"Sending email: {config.get('template')}")  # Your print should appear here
 
         # Submit downstream nodes
         for conn in connection_map.get(node.id, []):
