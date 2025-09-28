@@ -266,7 +266,6 @@ const WorkflowContainer: React.FC = () => {
 
   // Handle node drag stop
   const handleNodeDragStop = (event: any, node: any) => {
-    // 1️⃣ Optimistically update local state
     setNodes((nds) =>
       nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
     );
