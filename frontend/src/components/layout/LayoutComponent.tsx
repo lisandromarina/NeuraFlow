@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../ui/app-sidebar";
 import Workflow from "../workflow";
+import { RightAppSidebar } from "../ui/right-app-sidebar";
 
 interface Node {
   id: number;
@@ -13,13 +15,20 @@ interface LayoutComponentProps {
 }
 
 export default function LayoutComponent({ nodes }: LayoutComponentProps) {
+  const [rightOpen, setRightOpen] = useState(true);
+
   return (
-    <SidebarProvider className="bg-background">
-      <AppSidebar nodes={nodes} /> {/* Now nodes match AppSidebar */}
-      <SidebarTrigger className="p-auto" />
-      <main className="w-full vh-full">
-        <Workflow />
-      </main>
-    </SidebarProvider>
+    <div>
+      <SidebarProvider className="bg-background">
+        <AppSidebar nodes={nodes} />
+        <SidebarTrigger className="p-auto"/>
+        <main className="w-full vh-full">
+          <Workflow setOpenRightSidebar={setRightOpen}/>
+        </main>
+      </SidebarProvider>
+      <SidebarProvider open={rightOpen} className="bg-background" >
+        <RightAppSidebar/>
+      </SidebarProvider>
+    </div>
   );
 }

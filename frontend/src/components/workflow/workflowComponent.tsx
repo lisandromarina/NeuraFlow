@@ -14,6 +14,8 @@ interface WorkflowComponentProps {
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
   onNodeDragStop?: (event: any, node: any) => void;
+  onNodeClick?: (node: any) => void;
+  onPaneClick?: () => void;
 }
 
 const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
@@ -27,7 +29,9 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   onEdgesDelete,
   onInit,
   onViewportChange,
-  onNodeDragStop
+  onNodeDragStop,
+  onNodeClick,
+  onPaneClick
 }) => {
   return (
     <div className="w-full h-full">
@@ -44,6 +48,8 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onInit={onInit}
         onViewportChange={onViewportChange}
         onNodeDragStop={onNodeDragStop} 
+        onNodeClick={(event, node) => onNodeClick?.(node)}
+         onPaneClick={() => onPaneClick?.()}
       >
         <Background />
       </ReactFlow>

@@ -11,6 +11,10 @@ const nodeTypes: NodeTypes = {
   MultiplyNode: BaseHandle,
 };
 
+interface WorkflowContainerProps {
+  setOpenRightSidebar: (value: boolean) => void;
+}
+
 type WorkflowNodeType = {
   id: string;
   type: string;
@@ -27,13 +31,22 @@ type WorkflowEdgeType = {
   [key: string]: any;
 };
 
-const WorkflowContainer: React.FC = () => {
+const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSidebar }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeType>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeType>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const { callApi } = useApi();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<any>(null);
+
+  const handleNodeClick = (node: WorkflowNodeType) => {
+    console.log("Node clicked", node);
+    setOpenRightSidebar(true); // ✅ open the right sidebar when a node is clicked
+  };
+
+  const handlePaneClick = () => {
+    setOpenRightSidebar(false); // close the right sidebar
+  };
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
@@ -302,6 +315,8 @@ const WorkflowContainer: React.FC = () => {
       onInit={(instance) => setRfInstance(instance)}
       onViewportChange={(v) => setViewport(v)}
       onNodeDragStop={handleNodeDragStop}
+      onNodeClick={handleNodeClick}
+      onPaneClick={handlePaneClick} 
     />
   </div>
   );
