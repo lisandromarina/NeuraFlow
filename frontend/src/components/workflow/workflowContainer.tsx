@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { useNodesState, useEdgesState, addEdge } from "@xyflow/react";
+import { useNodesState, useEdgesState } from "@xyflow/react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
 import PlaceholderNodeDemo from "../placeholderdemo";
@@ -45,38 +45,34 @@ const WorkflowContainer: React.FC = () => {
     if (!reactFlowWrapper.current) return;
 
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-    const nodeType = event.dataTransfer.getData("application/reactflow");
-    if (!nodeType) return;
+    const nodeData = event.dataTransfer.getData("application/reactflow");
+    if (!nodeData) return;
 
-    // Convert screen coordinates to canvas coordinates using zoom/pan
+    const { type: nodeType, id: nodeId } = JSON.parse(nodeData);
+
     const position = {
       x: (event.clientX - reactFlowBounds.left - viewport.x) / viewport.zoom,
       y: (event.clientY - reactFlowBounds.top - viewport.y) / viewport.zoom,
     };
 
     try {
-      // 1️⃣ Call backend to create node
       const createdNode = await createWorkflowNode({
-        workflow_id: 1, // Fixed for now, adjust later
-        node_id: 2,     // Adjust if your backend expects different node types
+        workflow_id: 1,
+        node_id: nodeId,  // <-- use the original sidebar id here
         name: "Send Welcome Email",
         position_x: position.x,
         position_y: position.y,
         custom_config: {
           subject: "Welcome!",
-          body: "Thanks for joining our platformasdas.",
+          body: "Thanks for joining our platform.",
         },
       });
 
-      // 2️⃣ Only update state if the API call succeeds
       if (createdNode && createdNode.id) {
         const newNode: WorkflowNodeType = {
           id: createdNode.id.toString(),
-          type: nodeType,
-          position: {
-            x: createdNode.position_x,
-            y: createdNode.position_y,
-          },
+          type: nodeType,  // <-- use type from sidebar
+          position: { x: createdNode.position_x, y: createdNode.position_y },
           data: {
             label: createdNode.name,
             customConfig: createdNode.custom_config,
@@ -84,7 +80,6 @@ const WorkflowContainer: React.FC = () => {
         };
 
         setNodes((nds) => [...nds, newNode]);
-
         console.log("Node successfully added:", newNode);
       } else {
         console.error("Failed to create node: API returned invalid data", createdNode);

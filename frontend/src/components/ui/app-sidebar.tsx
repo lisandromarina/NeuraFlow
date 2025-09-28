@@ -1,4 +1,4 @@
-import { SquarePen, Search } from "lucide-react"
+import React from "react";
 import ThemeModeToggle from "./ThemeModeToggle";
 
 import {
@@ -10,34 +10,27 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-// Menu items.
-const items = [
-  {
-    title: "New Chat",
-    url: "#",
-    icon: SquarePen,
-  },
-  {
-    title: "Search Chat",
-    url: "#",
-    icon: Search,
-  }
-]
+interface Node {
+  id: number;
+  title: string;
+  type: string;
+}
 
-const workflowNodes = [
-  { title: "Trigger Node", type: "baseHandle" },
-  { title: "Send Email Connector", type: "SendEmail" },
-  { title: "Condition Node", type: "baseHandle" },
-];
+interface AppSidebarProps {
+  nodes: Node[];
+}
 
-const onDragStart = (event: React.DragEvent, nodeType: string) => {
-  event.dataTransfer.setData("application/reactflow", nodeType);
-  event.dataTransfer.effectAllowed = "move";
-};
+export function AppSidebar({ nodes }: AppSidebarProps) {
+  const onDragStart = (event: React.DragEvent, node: Node) => {
+    event.dataTransfer.setData("application/reactflow", JSON.stringify({
+      type: node.type,
+      id: node.id
+    }));
+    event.dataTransfer.effectAllowed = "move";
+  };
 
-export function AppSidebar() {
   return (
     <Sidebar className="bg-neutral-100 border-neutral-300">
       <SidebarContent>
@@ -49,16 +42,15 @@ export function AppSidebar() {
           <SidebarGroupLabel>Nodes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {workflowNodes.map((node) => (
-                <SidebarMenuItem key={node.type}>
+              {nodes?.map((node) => (
+                <SidebarMenuItem key={node.id}>
                   <SidebarMenuButton asChild>
                     <div
                       draggable
-                      onDragStart={(e) => onDragStart(e, node.type)}
+                      onDragStart={(e) => onDragStart(e, node)}
                       className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-200 rounded"
                     >
-                      {/* Optional icon */}
-                      <span>{node.title}</span>
+                      <span>{node.type}</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
