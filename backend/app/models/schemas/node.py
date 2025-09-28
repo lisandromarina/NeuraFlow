@@ -3,6 +3,7 @@ from typing import Optional, Dict
 
 
 class NodeBase(BaseModel):
+    name: str
     type: str
     global_config: Optional[Dict] = None
 

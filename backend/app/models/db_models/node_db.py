@@ -7,8 +7,9 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(String, nullable=False)  # e.g., "WebhookTrigger", "SendEmail"
-    global_config = Column(JSON, nullable=True)  # optional reusable settings
+    name = Column(String, nullable=False) 
+    type = Column(String, nullable=False) 
+    global_config = Column(JSON, nullable=True)
 
     # Relationships
     workflow_nodes = relationship("WorkflowNode", back_populates="node")
