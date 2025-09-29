@@ -15,7 +15,7 @@ interface LayoutComponentProps {
 }
 
 export default function LayoutComponent({ nodes }: LayoutComponentProps) {
-  const [rightOpen, setRightOpen] = useState(true);
+  const [isRightSidebarOpen, setisRightSidebarOpen] = useState(false);
 
   return (
     <div>
@@ -23,10 +23,10 @@ export default function LayoutComponent({ nodes }: LayoutComponentProps) {
         <AppSidebar nodes={nodes} />
         <SidebarTrigger className="p-auto"/>
         <main className="w-full vh-full">
-          <Workflow setOpenRightSidebar={setRightOpen}/>
+          <Workflow setOpenRightSidebar={setisRightSidebarOpen}/>
         </main>
       </SidebarProvider>
-      <SidebarProvider open={rightOpen} className="bg-background" >
+      <SidebarProvider open={isRightSidebarOpen} className="bg-background" >
         <RightAppSidebar/>
       </SidebarProvider>
     </div>
