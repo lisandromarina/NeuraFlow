@@ -9,7 +9,7 @@ class Node(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False) 
     type = Column(String, nullable=False) 
-    global_config = Column(JSON, nullable=True)
+    config_metadata = Column(JSON, nullable=False)
 
     # Relationships
     workflow_nodes = relationship("WorkflowNode", back_populates="node")

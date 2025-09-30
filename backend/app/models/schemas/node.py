@@ -5,7 +5,7 @@ from typing import Optional, Dict
 class NodeBase(BaseModel):
     name: str
     type: str
-    global_config: Optional[Dict] = None
+    config_metadata: Optional[Dict] = None
 
 
 class NodeCreate(NodeBase):
@@ -14,7 +14,7 @@ class NodeCreate(NodeBase):
 
 class NodeUpdate(BaseModel):
     type: Optional[str] = None
-    global_config: Optional[Dict] = None
+    config_metadata: Optional[Dict] = None
 
 
 class NodeResponse(NodeBase):

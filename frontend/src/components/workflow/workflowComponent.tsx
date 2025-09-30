@@ -42,14 +42,14 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodesDelete={onNodesDelete}    // ✅ Handles node deletion
-        onEdgesDelete={onEdgesDelete}    // ✅ Handles edge deletion
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
         fitView
         onInit={onInit}
         onViewportChange={onViewportChange}
         onNodeDragStop={onNodeDragStop} 
-        onNodeClick={(event, node) => onNodeClick?.(node)}
-         onPaneClick={() => onPaneClick?.()}
+        onNodeClick={(node) => onNodeClick?.(node)}
+        onPaneClick={() => onPaneClick?.()}
       >
         <Background />
       </ReactFlow>

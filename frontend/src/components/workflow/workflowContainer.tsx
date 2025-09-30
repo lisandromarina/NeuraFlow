@@ -37,7 +37,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const { callApi } = useApi();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [rfInstance, setRfInstance] = useState<any>(null);
+  const [_, setRfInstance] = useState<any>(null);
 
   const handleNodeClick = (node: WorkflowNodeType) => {
     console.log("Node clicked", node);
@@ -74,11 +74,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
         node_id: nodeId,
         name: "Send Welcome Email",
         position_x: position.x,
-        position_y: position.y,
-        custom_config: {
-          subject: "Welcome!",
-          body: "Thanks for joining our platform.",
-        },
+        position_y: position.y
       });
 
       if (createdNode && createdNode.id) {
@@ -105,6 +101,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
     try {
       const workflow = await callApi(`/workflow/${workflowId}/full`, "GET");
       if (!workflow) return;
+      console.log(workflow)
 
       const mappedNodes = workflow.nodes.map((node: any) => ({
         id: node.id.toString(),
@@ -150,7 +147,6 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
     name: string;
     position_x: number;
     position_y: number;
-    custom_config: Record<string, any>;
   }) => {
     try {
       const createdNode = await callApi(`/workflow-nodes/`, "POST", node);
@@ -281,7 +277,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
   };
 
   // Handle node drag stop
-  const handleNodeDragStop = (event: any, node: any) => {
+  const handleNodeDragStop = (_: any, node: any) => {
     setNodes((nds) =>
       nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
     );

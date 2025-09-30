@@ -95,7 +95,6 @@ def get_full_workflow(
     )
 
 
-
 # --- New route to trigger workflow execution ---
 @router.post("/{workflow_id}/execute")
 def execute_workflow(
@@ -106,7 +105,6 @@ def execute_workflow(
 ):
     service = WorkflowService(repo)
     workflow = service.get_workflow(workflow_id)
-
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
