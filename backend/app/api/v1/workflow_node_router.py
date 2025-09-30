@@ -55,3 +55,8 @@ def delete_node(node_id: int, service: WorkflowNodeService = Depends(get_workflo
     if not deleted:
         raise HTTPException(status_code=404, detail="WorkflowNode not found")
     return {"deleted": True}
+
+
+@router.get("/ui-schema/{workflow_node_id}", response_model=dict)
+def get_node_ui_schema(workflow_node_id: int, service: WorkflowNodeService = Depends(get_workflow_node_service)):
+    return service.get_node_ui_schema(workflow_node_id)

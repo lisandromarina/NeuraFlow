@@ -1,6 +1,8 @@
+from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
+from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from models.db_models.workflow_db import WorkflowDB
 from models.schemas.full_workflow import WorkflowConnectionSchema, WorkflowFullSchema, WorkflowNodeFullSchema
-from dependencies import get_db_session
+from dependencies import get_db_session, get_node_repository, get_workflow_node_repository
 from core.executor import WorkflowExecutor
 from fastapi import APIRouter, Depends, HTTPException, Body
 from services.workflow_service import WorkflowService
@@ -115,3 +117,48 @@ def execute_workflow(
         raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
 
     return {"message": f"Workflow {workflow_id} executed successfully"}
+
+
+@router.get("/ui-schema/{workflow_node_id}", response_model=dict)
+def get_node_ui_schema(
+    workflow_node_id: int,
+    workflow_node_repo: SqlAlchemyWorkflowNodeRepository = Depends(get_workflow_node_repository),
+    node_repo: SqlAlchemyNodeRepository = Depends(get_node_repository)
+):
+    """
+    Return a WorkflowNode merged with its Node metadata,
+    ready for UI display (labels, defaults, and current custom_config values).
+    """
+    # 1. Get the workflow node
+    workflow_node = workflow_node_repo.get_by_id(workflow_node_id)
+    if not workflow_node:
+        raise HTTPException(status_code=404, detail="WorkflowNode not found")
+
+    # 2. Get the node definition
+    node_metadata = node_repo.get_by_id(workflow_node.node_id)
+    if not node_metadata:
+        raise HTTPException(status_code=404, detail="Node definition not found")
+
+    # 3. Merge custom_config with config_metadata
+    def build_node_ui_schema(node_metadata: dict, custom_config: dict) -> dict:
+        inputs = []
+        for field in node_metadata.get("config_metadata", {}).get("inputs", []):
+            name = field["name"]
+            value = custom_config.get(name, field.get("default"))
+            inputs.append({**field, "value": value})
+
+        outputs = node_metadata.get("config_metadata", {}).get("outputs", [])
+
+        return {
+            "id": workflow_node.id,
+            "name": workflow_node.name,
+            "node_type": node_metadata.type,
+            "workflow_id": workflow_node.workflow_id,
+            "position_x": workflow_node.position_x,
+            "position_y": workflow_node.position_y,
+            "inputs": inputs,
+            "outputs": outputs
+        }
+
+    ui_schema = build_node_ui_schema(node_metadata.__dict__, workflow_node.custom_config or {})
+    return ui_schema
