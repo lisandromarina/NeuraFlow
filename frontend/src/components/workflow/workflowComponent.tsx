@@ -14,7 +14,7 @@ interface WorkflowComponentProps {
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
   onNodeDragStop?: (event: any, node: any) => void;
-  onNodeClick?: (node: any) => void;
+  onNodeClick?: (event: React.MouseEvent, node: Node) => void
   onPaneClick?: () => void;
 }
 
@@ -48,7 +48,7 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onInit={onInit}
         onViewportChange={onViewportChange}
         onNodeDragStop={onNodeDragStop} 
-        onNodeClick={(node) => onNodeClick?.(node)}
+        onNodeClick={(event, node) => onNodeClick?.(event, node)}
         onPaneClick={() => onPaneClick?.()}
       >
         <Background />

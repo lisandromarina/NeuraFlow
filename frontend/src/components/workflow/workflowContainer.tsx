@@ -39,10 +39,22 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [_, setRfInstance] = useState<any>(null);
 
-  const handleNodeClick = (node: WorkflowNodeType) => {
+  const handleNodeClick = async (_: React.MouseEvent, node: WorkflowNodeType) => {
     console.log("Node clicked", node);
-    setOpenRightSidebar(true); // ✅ open the right sidebar when a node is clicked
+    setOpenRightSidebar(true); // open the right sidebar
+
+    try {
+      // 1️⃣ Fetch the UI schema for this node
+      const uiSchema = await callApi(`/workflow-nodes/ui-schema/${node.id}`, "GET");
+      if (!uiSchema) return;
+
+      console.log("Full node data:", uiSchema);
+
+    } catch (err) {
+      console.error("Failed to fetch node UI schema:", err);
+    }
   };
+
 
   const handlePaneClick = () => {
     setOpenRightSidebar(false); // close the right sidebar

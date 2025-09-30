@@ -102,7 +102,7 @@ class WorkflowNodeService:
 
         return {
             "id": workflow_node.id,
-            "name": workflow_node.name,
+            "name": node_metadata.name,
             "node_type": node_metadata.type,
             "workflow_id": workflow_node.workflow_id,
             "position_x": workflow_node.position_x,
