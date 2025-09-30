@@ -13,6 +13,7 @@ const nodeTypes: NodeTypes = {
 
 interface WorkflowContainerProps {
   setOpenRightSidebar: (value: boolean) => void;
+  setSelectedNode: (node: any) => void;
 }
 
 type WorkflowNodeType = {
@@ -31,7 +32,7 @@ type WorkflowEdgeType = {
   [key: string]: any;
 };
 
-const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSidebar }) => {
+const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode, setOpenRightSidebar }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeType>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeType>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -41,13 +42,14 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
 
   const handleNodeClick = async (_: React.MouseEvent, node: WorkflowNodeType) => {
     console.log("Node clicked", node);
-    setOpenRightSidebar(true); // open the right sidebar
-
+    
     try {
       // 1️⃣ Fetch the UI schema for this node
       const uiSchema = await callApi(`/workflow-nodes/ui-schema/${node.id}`, "GET");
       if (!uiSchema) return;
-
+      
+      setSelectedNode(uiSchema); 
+      setOpenRightSidebar(true); // open the right sidebar
       console.log("Full node data:", uiSchema);
 
     } catch (err) {
@@ -58,6 +60,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setOpenRightSide
 
   const handlePaneClick = () => {
     setOpenRightSidebar(false); // close the right sidebar
+    setSelectedNode(null)
   };
 
   const handleDragOver = (event: React.DragEvent) => {

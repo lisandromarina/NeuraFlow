@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../ui/app-sidebar";
 import Workflow from "../workflow";
@@ -12,22 +11,30 @@ interface Node {
 
 interface LayoutComponentProps {
   nodes: Node[];
+  selectedNode: any;
+  setSelectedNode: (node: any) => void;
+  isRightSidebarOpen: boolean;
+  setIsRightSidebarOpen: (open: boolean) => void;
 }
 
-export default function LayoutComponent({ nodes }: LayoutComponentProps) {
-  const [isRightSidebarOpen, setisRightSidebarOpen] = useState(false);
-
+export default function LayoutComponent({
+  nodes,
+  selectedNode,
+  setSelectedNode,
+  isRightSidebarOpen,
+  setIsRightSidebarOpen,
+}: LayoutComponentProps) {
   return (
     <div>
       <SidebarProvider className="bg-background">
         <AppSidebar nodes={nodes} />
         <SidebarTrigger className="p-auto"/>
         <main className="w-full vh-full">
-          <Workflow setOpenRightSidebar={setisRightSidebarOpen}/>
+          <Workflow setOpenRightSidebar={setIsRightSidebarOpen} setSelectedNode={setSelectedNode}/>
         </main>
       </SidebarProvider>
       <SidebarProvider open={isRightSidebarOpen} className="bg-background" >
-        <RightAppSidebar/>
+        <RightAppSidebar node={selectedNode}/>
       </SidebarProvider>
     </div>
   );

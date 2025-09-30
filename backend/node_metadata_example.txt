@@ -1,0 +1,51 @@
+{
+  "inputs": [
+    {
+      "name": "factorA",
+      "label": "Factor A",
+      "type": "number",
+      "required": true,
+      "default": 1
+    },
+    {
+      "name": "factorB",
+      "label": "Factor B",
+      "type": "text",
+      "required": true,
+      "default": "Some text"
+    },
+    {
+      "name": "acceptTerms",
+      "label": "Accept Terms",
+      "type": "checkbox",
+      "required": true,
+      "default": false
+    },
+    {
+      "name": "color",
+      "label": "Choose a Color",
+      "type": "select",
+      "required": false,
+      "options": [
+        { "label": "Red", "value": "red" },
+        { "label": "Green", "value": "green" },
+        { "label": "Blue", "value": "blue" }
+      ],
+      "default": "red"
+    },
+    {
+      "name": "description",
+      "label": "Description",
+      "type": "textarea",
+      "required": false,
+      "default": "Enter a longer description here..."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "label": "Result",
+      "type": "text"
+    }
+  ]
+}

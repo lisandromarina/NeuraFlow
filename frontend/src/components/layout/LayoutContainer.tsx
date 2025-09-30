@@ -18,6 +18,10 @@ const LayoutContainer: React.FC = () => {
   const [nodes, setNodes] = useState<SidebarNode[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+
   const { callApi } = useApi();
 
   const fetchNodes = async () => {
@@ -48,7 +52,14 @@ const LayoutContainer: React.FC = () => {
   if (loading) return <div>Loading nodes...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  return <LayoutComponent nodes={nodes} />;
+  return (
+  <LayoutComponent 
+    selectedNode={selectedNode}
+    setSelectedNode={setSelectedNode}
+    isRightSidebarOpen={isRightSidebarOpen}
+    setIsRightSidebarOpen={setIsRightSidebarOpen}
+    nodes={nodes} />
+  );
 };
 
 export default LayoutContainer;
