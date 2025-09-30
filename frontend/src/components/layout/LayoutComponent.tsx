@@ -33,7 +33,7 @@ export default function LayoutComponent({
           <Workflow setOpenRightSidebar={setIsRightSidebarOpen} setSelectedNode={setSelectedNode}/>
         </main>
       </SidebarProvider>
-      <SidebarProvider open={isRightSidebarOpen} className="bg-background" >
+      <SidebarProvider open={isRightSidebarOpen}  >
         <RightAppSidebar node={selectedNode}/>
       </SidebarProvider>
     </div>
