@@ -1,3 +1,4 @@
+import re
 from sqlalchemy.orm import Session
 from .node_factory import NodeFactory
 from models.db_models.workflow_nodes import WorkflowNode
@@ -83,9 +84,9 @@ class WorkflowExecutor:
         log(f"Node config: custom={node.custom_config}", indent)
 
         # Merge node global config and custom config
-        config = {
-            **(node.custom_config or {}),
-        }
+        raw_config = node.custom_config or {}
+        config = resolve_config(raw_config, context)
+        log(f"Resolved config for node {node.id}: {config}", indent)
 
         # Fetch executor for this node type
         executor_cls = NodeFactory.get_executor(node.node.type)
@@ -134,3 +135,29 @@ class WorkflowExecutor:
             log(f"All downstream nodes for node {node.id} completed.", indent)
         else:
             log(f"Node {node.id} has no downstream nodes.", indent)
+
+def resolve_config(config, context):
+    """
+    Replace placeholders in config like {{ parent_result.value }}
+    """
+    resolved = {}
+
+    for key, value in config.items():
+        if isinstance(value, str):
+            match = re.fullmatch(r"\{\{\s*(.*?)\s*\}\}", value)
+            if match:
+                expr = match.group(1)  # e.g. "parent_result.value"
+                parts = expr.split(".")
+                current = context
+                try:
+                    for part in parts:
+                        current = current[part] if isinstance(current, dict) else getattr(current, part)
+                    resolved[key] = current
+                except Exception:
+                    resolved[key] = None
+            else:
+                resolved[key] = value
+        else:
+            resolved[key] = value
+
+    return resolved

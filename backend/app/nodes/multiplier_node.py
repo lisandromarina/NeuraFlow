@@ -11,11 +11,9 @@ class MultiplyExecutor:
           - context["parent_result"] (direct parent output)
           - config["multiplier"]
         """
+        factor_a = config.get("factorA", 1)
+        factor_b = config.get("factorB", 1)
 
-        parent_output = context.get("parent_result", 1)
-
-        multiplier = config.get("factorB", 1)
-        result = parent_output * multiplier
-
-        print(f"[MultiplyNode] Parent Result: {parent_output}, Multiplier: {multiplier}, Result: {result}")
+        result = factor_a * factor_b
+        print(f"[MultiplyNode] factorA={factor_a}, factorB={factor_b}, result={result}")
         return result
