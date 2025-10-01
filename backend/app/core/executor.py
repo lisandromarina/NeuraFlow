@@ -1,10 +1,8 @@
-# engine/executor.py
 from sqlalchemy.orm import Session
 from .node_factory import NodeFactory
 from models.db_models.workflow_nodes import WorkflowNode
 from models.db_models.workflow_connections_db import WorkflowConnection
 from concurrent.futures import ThreadPoolExecutor, wait
-from . import executors_examples
 import datetime
 import threading
 import copy

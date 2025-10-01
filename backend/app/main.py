@@ -4,6 +4,7 @@ from api.v1 import workflow_routes
 from api.v1 import node_routes
 from api.v1 import workflow_node_router
 from api.v1 import workflow_connection_routes
+import nodes  # SUPER NEEDED, IMPORTS AND REGISTER ALL THE NODES
 
 app = FastAPI()
 
