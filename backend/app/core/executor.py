@@ -1,3 +1,4 @@
+# engine/executor.py
 from sqlalchemy.orm import Session
 from .node_factory import NodeFactory
 from models.db_models.workflow_nodes import WorkflowNode
@@ -81,11 +82,10 @@ class WorkflowExecutor:
         indent = indent_level  # Use local indent for logging
 
         log(f"--- Running node {node.id} of type {node.node.type} ---", indent)
-        log(f"Node config: global={node.node.global_config}, custom={node.custom_config}", indent)
+        log(f"Node config: custom={node.custom_config}", indent)
 
         # Merge node global config and custom config
         config = {
-            **(node.node.global_config or {}),
             **(node.custom_config or {}),
         }
 

@@ -32,7 +32,7 @@ const LayoutContainer: React.FC = () => {
       // Map API nodes to SidebarNode expected by AppSidebar
       const mappedNodes: SidebarNode[] = data.map((node) => ({
         id: node.id,
-        title: node.name,  // rename name -> title
+        title: node.name, 
         type: node.type,
       }));
 

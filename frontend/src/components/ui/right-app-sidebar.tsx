@@ -8,6 +8,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Field } from "./fields";
+import { useApi } from "../../api/useApi";
 
 interface RightAppSidebarProps {
   node: any;
@@ -15,6 +16,8 @@ interface RightAppSidebarProps {
 
 export function RightAppSidebar({ node }: RightAppSidebarProps) {
   const [values, setValues] = useState<Record<string, any>>({});
+  const { callApi } = useApi();
+  
 
   useEffect(() => {
     if (!node?.inputs) return;
@@ -32,10 +35,28 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const createBody = () => {
+    return {
+      "custom_config": values
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(values)
-    //onSubmit?.(values); // send values back to parent (e.g. call API here)
+    
+    let body = createBody()
+
+    try {
+      const response = await callApi(
+        `/workflow-nodes/${node.id}`, 
+        "PUT",
+        body                        
+      );
+
+      console.log("Saved node:", response);
+    } catch (error) {
+      console.error("Failed to save node:", error);
+    }
   };
 
   return (
