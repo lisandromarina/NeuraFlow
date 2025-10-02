@@ -1,0 +1,13 @@
+{
+  "name" : "Multiply Node",
+  "type": "MultiplyNode",
+  "config_metadata": {
+    "inputs": [
+        { "name": "factorA", "label": "Factor A", "type": "number", "required": true, "default": 1 },
+        { "name": "factorB", "label": "Factor B", "type": "number", "required": true, "default": 1 }
+    ],
+    "outputs": [
+        { "name": "result", "label": "Result", "type": "number" }
+    ]
+  }   
+}

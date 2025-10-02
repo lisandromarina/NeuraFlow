@@ -9,6 +9,7 @@ import { useApi } from "../../api/useApi";
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
   MultiplyNode: BaseHandle,
+  HttpNode: BaseHandle
 };
 
 interface WorkflowContainerProps {

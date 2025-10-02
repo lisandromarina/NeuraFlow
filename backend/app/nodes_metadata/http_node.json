@@ -1,0 +1,34 @@
+{
+  "name": "Call External API",
+  "type": "HttpNode",
+  "config_metadata": {
+    "inputs": [
+      {
+        "name": "url",
+        "label": "API URL",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "method",
+        "label": "HTTP Method",
+        "type": "select",
+        "required": true,
+        "default": "GET",
+        "options": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+      },
+      {
+        "name": "headers",
+        "label": "Headers",
+        "type": "json",
+        "required": false
+      },
+      {
+        "name": "body",
+        "label": "Request Body",
+        "type": "textarea",
+        "required": false
+      }
+    ]
+  }
+}
