@@ -25,12 +25,15 @@ export default function LayoutComponent({
   setIsRightSidebarOpen,
 }: LayoutComponentProps) {
   return (
-    <div>
+    <div className="h-screen overflow-hidden">
       <SidebarProvider className="bg-background">
         <AppSidebar nodes={nodes} />
         <SidebarTrigger className="p-auto"/>
-        <main className="w-full vh-full">
-          <Workflow setOpenRightSidebar={setIsRightSidebarOpen} setSelectedNode={setSelectedNode}/>
+        <main className="w-full">
+          <Workflow 
+            setOpenRightSidebar={setIsRightSidebarOpen} 
+            setSelectedNode={setSelectedNode}
+          />
         </main>
       </SidebarProvider>
       <SidebarProvider open={isRightSidebarOpen}  >
