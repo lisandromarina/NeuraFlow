@@ -1,31 +1,46 @@
+import os
 import redis, json, time, datetime
 
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")
+
 class SchedulerService:
-    def __init__(self, redis_url="redis://localhost:6379/0"):
-        self.r = redis.Redis.from_url(redis_url)
+    def __init__(self, redis_url=None):
+        self.r = redis.Redis.from_url(redis_url or REDIS_URL)
 
     def register_schedule(
         self,
         workflow_id,
-        start_time=None,           # first execution datetime
-        interval_seconds=None,     # repeat interval
-        until=None,                # ISO datetime string to stop
-        max_occurrences=None,      # optional max runs
+        start_time=None,
+        interval_seconds=None,
+        until=None,
+        max_occurrences=None,
         context=None
     ):
-        """Register a schedule. Nothing happens until this is called."""
+    
+        """Register or update a schedule."""
         start_time = start_time or datetime.datetime.utcnow()
-        data = {
+        workflow_id_str = str(workflow_id)
+        existing = self.r.hget("workflow_schedules", workflow_id_str)
+        if existing:
+            # Merge existing schedule with updates
+            data = json.loads(existing)
+            print(f"[SchedulerService] Updating existing schedule for {workflow_id}")
+        else:
+            data = {"occurrences": 0}
+            print(f"[SchedulerService] Creating new schedule for {workflow_id}")
+
+        # Update/override relevant fields
+        data.update({
             "workflow_id": workflow_id,
             "next_run": start_time.isoformat(),
-            "context": context or {},
+            "context": context or data.get("context", {}),
             "interval_seconds": interval_seconds,
             "until": until,
             "max_occurrences": max_occurrences,
-            "occurrences": 0
-        }
+        })
+
         self.r.hset("workflow_schedules", workflow_id, json.dumps(data))
-        print(f"[SchedulerService] Registered workflow {workflow_id} to run at {start_time}")
+        print(f"[SchedulerService] Schedule for {workflow_id} set to run at {start_time}")
 
     def run_forever(self):
         """Main loop — triggers only registered schedules"""

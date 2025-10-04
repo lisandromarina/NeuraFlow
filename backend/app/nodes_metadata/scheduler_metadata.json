@@ -1,0 +1,57 @@
+{
+  "name": "Scheduler Node",
+  "type": "SchedulerNode",
+  "config_metadata": {
+    "inputs": [
+      {
+        "name": "delay_seconds",
+        "label": "Delay (seconds)",
+        "type": "number",
+        "required": true,
+        "default": 60,
+        "description": "The number of seconds before the workflow is triggered."
+      },
+      {
+        "name": "interval_seconds",
+        "label": "Repeat Interval (seconds)",
+        "type": "number",
+        "required": false,
+        "description": "Optional interval for repeating executions."
+      },
+      {
+        "name": "max_occurrences",
+        "label": "Max Occurrences",
+        "type": "number",
+        "required": false,
+        "description": "Maximum number of times to execute this schedule."
+      },
+      {
+        "name": "until",
+        "label": "Run Until (ISO Datetime)",
+        "type": "string",
+        "required": false,
+        "description": "Optional timestamp to stop running the schedule."
+      },
+      {
+        "name": "context",
+        "label": "Execution Context",
+        "type": "json",
+        "required": false,
+        "description": "Additional data to include when triggering the workflow."
+      }
+    ],
+    "outputs": [
+      {
+        "name": "next_run",
+        "label": "Next Run Time",
+        "type": "datetime"
+      },
+      {
+        "name": "status",
+        "label": "Schedule Status",
+        "type": "string",
+        "description": "Indicates whether the schedule was successfully registered."
+      }
+    ]
+  }
+}

@@ -4,11 +4,19 @@ from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate,
 from models.db_models.workflow_nodes import WorkflowNode
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from services.node_service import NodeService  # <-- Import your NodeService
+from services.triggers_services import TriggerService
 
 class WorkflowNodeService:
-    def __init__(self, workflow_node_repo: SqlAlchemyWorkflowNodeRepository, node_service: NodeService):
+    def __init__(
+            self, 
+            workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
+            node_service: NodeService,
+            trigger_service: TriggerService 
+        ):
         self.workflow_node_repo = workflow_node_repo
         self.node_service = node_service  # Use NodeService instead of direct DB calls
+        self.trigger_service = trigger_service
+
 
     # ------------------------
     # Read Operations
@@ -60,12 +68,29 @@ class WorkflowNodeService:
         for field, value in update_data.dict(exclude_unset=True).items():
             setattr(node, field, value)
 
-        return self.workflow_node_repo.update(node)
+        updated_node = self.workflow_node_repo.update(node)
+
+        db_node = self.node_service.get_node(node.node_id)
+
+        self.trigger_service.handle_node_update(db_node.type, updated_node)
+        
+        return updated_node
+
 
     # ------------------------
     # Delete
     # ------------------------
     def delete_node(self, node_id: int) -> bool:
+        node = self.workflow_node_repo.get_by_id(node_id)
+        if not node:
+            return False
+
+        db_node = self.node_service.get_node(node.node_id)
+        type = db_node.type  
+
+        # Delete associated trigger schedule
+        self.trigger_service.delete_trigger(type, node)
+
         return self.workflow_node_repo.delete(node_id)
 
     def delete_all_nodes_in_workflow(self, workflow_id: int) -> None:

@@ -11,7 +11,6 @@ class NodeFactory:
 
     @classmethod
     def get_executor(cls, node_type):
-        print(cls.executors)
         executor_cls = cls.executors.get(node_type)
         
         if not executor_cls:

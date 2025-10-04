@@ -1,3 +1,4 @@
+from services.triggers_services import TriggerService
 from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -32,3 +33,7 @@ def get_node_repository(db = Depends(get_db_session)):
 
 def get_workflow_node_repository(db = Depends(get_db_session)):
     return SqlAlchemyWorkflowNodeRepository(db)
+
+def get_trigger_service() -> TriggerService:
+    """Provides a new instance of TriggerService"""
+    return TriggerService()
