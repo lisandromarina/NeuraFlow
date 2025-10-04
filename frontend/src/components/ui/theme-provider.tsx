@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const initialState: ThemeProviderState = {
   theme: { mode: 'dark', color: 'yellow' },
@@ -13,7 +13,28 @@ export function ThemeProvider({
   storageKey = 'distort-ui-theme',
   ...props
 }: ThemeProviderProps) {
-  const [storedTheme, setStoredTheme] = useState<Theme>(defaultTheme);
+  const [storedTheme, setStoredTheme] = useState<Theme>(() => {
+    // Try to load from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          console.warn('Invalid theme data in localStorage, using default');
+        }
+      }
+    }
+    // Fallback to default
+    return defaultTheme;
+  });
+
+  // Save theme to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, JSON.stringify(storedTheme));
+    }
+  }, [storedTheme, storageKey]);
 
   const value = {
     theme: storedTheme,
@@ -22,19 +43,21 @@ export function ThemeProvider({
     }
   };
 
-  if (storedTheme.mode === 'system') {
-    const systemMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-
-    return (
-      <ThemeProviderContext.Provider {...props} value={value}>
-        <div data-theme={`${storedTheme.color}-${systemMode}`}>{children}</div>
-      </ThemeProviderContext.Provider>
-    );
-  }
+  const resolvedMode =
+    storedTheme.mode === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+      : storedTheme.mode;
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
-      <div className={`${storedTheme.mode}`} data-theme={`${storedTheme.color}-${storedTheme.mode}`}>{children}</div>
+      <div
+        className={resolvedMode}
+        data-theme={`${storedTheme.color}-${resolvedMode}`}
+      >
+        {children}
+      </div>
     </ThemeProviderContext.Provider>
   );
 }
@@ -45,7 +68,8 @@ export function ThemeProvider({
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext);
 
-  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider');
+  if (context === undefined)
+    throw new Error('useTheme must be used within a ThemeProvider');
 
   return context;
 };
