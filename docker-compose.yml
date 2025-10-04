@@ -17,6 +17,35 @@ services:
       - ./frontend:/app:cached
       - /app/node_modules
 
+  redis:
+    image: redis:7
+    container_name: redis_db
+    restart: always
+    networks:
+      - app_network
+    ports:
+      - "6379:6379"
+
+  scheduler:
+    build: ./backend
+    command: python -m main_scheduler_service
+    networks:
+      - app_network
+    environment:
+      - REDIS_URL=redis://redis_db:6379/0
+    depends_on:
+      - redis
+
+  worker:
+    build: ./backend
+    command: python -m main_trigger_worker
+    networks:
+      - app_network
+    environment:
+      - REDIS_URL=redis://redis_db:6379/0
+    depends_on:
+      - redis
+      - postgres
 
   backend:
     build:
@@ -31,6 +60,10 @@ services:
       - ./backend/app:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mydatabase
+      - REDIS_URL=redis://redis_db:6379/0
+    depends_on:
+      - redis
+      - postgres
 
   postgres:
     image: postgres:15

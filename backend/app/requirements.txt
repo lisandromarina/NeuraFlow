@@ -4,3 +4,4 @@ SQLAlchemy
 psycopg2-binary
 pydantic==2.8.0
 requests
+redis>=5.0.0

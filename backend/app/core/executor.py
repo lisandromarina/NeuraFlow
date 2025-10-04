@@ -1,33 +1,31 @@
 import re
+import copy
+import datetime
+import threading
+from concurrent.futures import ThreadPoolExecutor, wait
 from sqlalchemy.orm import Session
 from .node_factory import NodeFactory
 from models.db_models.workflow_nodes import WorkflowNode
 from models.db_models.workflow_connections_db import WorkflowConnection
-from concurrent.futures import ThreadPoolExecutor, wait
-import datetime
-import threading
-import copy
+import nodes
 
+# Thread-safe logger
 def log(msg: str, indent_level=0):
-    """Thread-safe logging with timestamps and indentation."""
     indent = "  " * indent_level
-    print(f"{datetime.datetime.now().isoformat()} | {indent}{msg}")
+    thread_name = threading.current_thread().name
+    print(f"{datetime.datetime.now().isoformat()} [{thread_name}] {indent}{msg}")
 
 
 class WorkflowExecutor:
     def __init__(self, db: Session, max_workers=8):
         self.db = db
         self.executor_pool = ThreadPoolExecutor(max_workers=max_workers)
-        self.thread_local = threading.local()  # Keep track of log indentation per thread
+        self.thread_local = threading.local()  # Optional: per-thread indentation
 
     def execute_workflow(self, workflow_id, context=None):
-        """
-        Execute the entire workflow starting from the initial nodes.
-        initial_context is a dict that is passed to the first node(s).
-        """
         context = context or {}
 
-        # Load workflow nodes and connections
+        # Load nodes and connections
         nodes = self.db.query(WorkflowNode).filter_by(workflow_id=workflow_id).all()
         connections = self.db.query(WorkflowConnection).filter_by(workflow_id=workflow_id).all()
 
@@ -36,10 +34,10 @@ class WorkflowExecutor:
         log(f"Loaded nodes: {[node.id for node in nodes]}")
         log(f"Loaded connections: [{', '.join(f'{c.from_step_id}->{c.to_step_id}' for c in connections)}]")
 
-        # Build node lookup map
+        # Build node map
         node_map = {node.id: node for node in nodes}
 
-        # Build connection map: from_step_id -> list of connections
+        # Build connection map
         connection_map = {}
         for conn in connections:
             connection_map.setdefault(conn.from_step_id, []).append(conn)
@@ -48,7 +46,7 @@ class WorkflowExecutor:
         for node_id, conns in connection_map.items():
             log(f"  Node {node_id} -> {[c.to_step_id for c in conns]}")
 
-        # Identify start nodes (nodes not targeted by any other node)
+        # Identify start nodes
         target_node_ids = {conn.to_step_id for conn in connections}
         start_nodes = [node for node in nodes if node.id not in target_node_ids]
 
@@ -62,7 +60,7 @@ class WorkflowExecutor:
             self.executor_pool.submit(
                 self.run_node_recursive_safe,
                 node,
-                copy.deepcopy(context),  # Pass a fresh context per start node
+                copy.deepcopy(context),
                 node_map,
                 connection_map,
                 0
@@ -70,50 +68,44 @@ class WorkflowExecutor:
             for node in start_nodes
         ]
 
-        # Wait for all parallel start nodes to finish
+        # Wait for all start nodes to finish
         wait(futures)
-        self.executor_pool.shutdown(wait=True)
-
         log("=== Workflow Execution Completed ===")
 
     def run_node_recursive_safe(self, node, context, node_map, connection_map, indent_level):
-        """Run a node and recursively run its children, passing only parent_result in context."""
-        indent = indent_level  # Use local indent for logging
-
+        indent = indent_level
         log(f"--- Running node {node.id} of type {node.node.type} ---", indent)
         log(f"Node config: custom={node.custom_config}", indent)
 
-        # Merge node global config and custom config
+        # Resolve config
         raw_config = node.custom_config or {}
         config = resolve_config(raw_config, context)
         log(f"Resolved config for node {node.id}: {config}", indent)
 
-        # Fetch executor for this node type
+        # Fetch executor class
         executor_cls = NodeFactory.get_executor(node.node.type)
-
+        log(f"GOT EXECUTOR")
         try:
-            # Run executor and get output
+            # Execute node
             result = executor_cls.run(config, context)
+            log(f"RESULT {result}")
         except Exception as e:
             log(f"ERROR executing node {node.id}: {e}", indent)
             return
 
         log(f"Node {node.id} finished, result: {result}", indent)
-
-        # Update context with current node output (for logging or parent reference)
         context[f"node_{node.id}_output"] = result
 
-        # Find downstream children
+        # Handle downstream nodes
         children = connection_map.get(node.id, [])
         if children:
             log(f"Node {node.id} has downstream nodes: {[c.to_step_id for c in children]}", indent)
 
         downstream_futures = []
-
         for conn in children:
             next_node = node_map[conn.to_step_id]
 
-            # Build child context: only initial context + current node result
+            # Build child context
             child_context = {k: v for k, v in context.items() if not k.startswith("node_")}
             child_context["parent_result"] = result
 
