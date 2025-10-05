@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from models.db_models.workflow_nodes import WorkflowNode as WorkflowNodeDB
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeSchema
+from models.db_models.node_db import Node
 
 class SqlAlchemyWorkflowNodeRepository:
     def __init__(self, session: Session):
@@ -21,6 +22,25 @@ class SqlAlchemyWorkflowNodeRepository:
             .all()
         )
         return [WorkflowNodeSchema.from_orm(node) for node in nodes_db]
+    
+    def list_by_workflow_and_type(self, workflow_id: int, node_type: str) -> List[WorkflowNodeSchema]:
+        nodes_db = (
+            self.session.query(WorkflowNodeDB, Node.type)
+            .join(Node, WorkflowNodeDB.node_id == Node.id)
+            .filter(
+                WorkflowNodeDB.workflow_id == workflow_id,
+                Node.type == node_type
+            )
+            .all()
+        )
+
+        result = []
+        for node_db, type_value in nodes_db:
+            node_schema = WorkflowNodeSchema.from_orm(node_db)
+            node_schema.node_type = type_value
+            result.append(node_schema)
+
+        return result
 
     # ------------------------
     # Create

@@ -1,12 +1,12 @@
+from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from services.triggers_services import TriggerService
 from fastapi import APIRouter, Depends, HTTPException # type: ignore
 from typing import List
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from services.workflow_node_service import WorkflowNodeService
-from services.node_service import NodeService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
-from dependencies import get_workflow_node_repository, get_node_repository, get_trigger_service
+from dependencies import get_workflow_repository, get_workflow_node_repository, get_node_repository, get_trigger_service
 
 router = APIRouter(prefix="/workflow-nodes", tags=["Workflow Nodes"])
 
@@ -14,10 +14,11 @@ router = APIRouter(prefix="/workflow-nodes", tags=["Workflow Nodes"])
 def get_workflow_node_service(
     workflow_node_repo: SqlAlchemyWorkflowNodeRepository = Depends(get_workflow_node_repository),
     node_repo: SqlAlchemyNodeRepository = Depends(get_node_repository),
+    workflow_repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository),
     trigger_service: TriggerService = Depends(get_trigger_service),
 ) -> WorkflowNodeService:
     """Factory function to provide a fully constructed WorkflowNodeService"""
-    return WorkflowNodeService(workflow_node_repo, node_repo, trigger_service)
+    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo, trigger_service)
 
 
 @router.get("/{node_id}", response_model=WorkflowNodeSchema)

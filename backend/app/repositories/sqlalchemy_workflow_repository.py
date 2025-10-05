@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session # type: ignore
 from models.db_models.workflow_db import WorkflowDB
 from models.schemas.workflow import Workflow
 from repositories.workflow_repository import WorkflowRepository

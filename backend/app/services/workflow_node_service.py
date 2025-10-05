@@ -2,6 +2,7 @@ from fastapi import HTTPException # type: ignore
 from typing import List, Optional
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from models.db_models.workflow_nodes import WorkflowNode
+from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from services.triggers_services import TriggerService
@@ -11,10 +12,12 @@ class WorkflowNodeService:
             self, 
             workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
             node_repo: SqlAlchemyNodeRepository,
+            workflow_repo: SqlAlchemyWorkflowRepository,
             trigger_service: TriggerService 
         ):
         self.workflow_node_repo = workflow_node_repo
         self.node_repo = node_repo 
+        self.workflow_repo = workflow_repo
         self.trigger_service = trigger_service
 
 
@@ -72,7 +75,9 @@ class WorkflowNodeService:
 
         db_node = self.node_repo.get_node(node.node_id)
 
-        self.trigger_service.handle_node_update(db_node.type, updated_node)
+        workflow = self.workflow_repo.get_by_id(node.workflow_id)
+        if workflow and workflow.is_active:
+            self.trigger_service.handle_node_update(db_node.type, updated_node)
         
         return updated_node
 
