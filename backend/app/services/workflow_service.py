@@ -4,17 +4,19 @@ from services.triggers_services import TriggerService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.workflow_repository import WorkflowRepository
 from models.schemas.workflow import Workflow
+from core.events import WORKFLOW_ACTIVATED, WORKFLOW_DEACTIVATED, WORKFLOW_DELETED
+import json
 
 class WorkflowService:
     def __init__(
-            self, 
-            repository: WorkflowRepository, 
-            wn_repository: SqlAlchemyWorkflowNodeRepository,
-            trigger_service : TriggerService
-        ):
+        self,
+        repository: WorkflowRepository,
+        wn_repository: SqlAlchemyWorkflowNodeRepository,
+        redis_client,  # Redis dependency injected
+    ):
         self.repository = repository
         self.wn_repository = wn_repository
-        self.trigger_service = trigger_service
+        self.redis_client = redis_client
 
     def get_workflow(self, workflow_id: int) -> Optional[Workflow]:
         return self.repository.get_by_id(workflow_id)
@@ -44,46 +46,38 @@ class WorkflowService:
 
         self.repository.update(wf_db)
 
-        # Handle activation/deactivation
+        # Handle activation/deactivation via Redis events
         if is_active_changed:
+            nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
+            event_payload = {
+                "workflow_id": workflow_id,
+                "nodes": [{"node_id": n.id, "node_type": n.node_type} for n in nodes]
+            }
+
             if wf_db.is_active:
-                # ✅ Workflow reactivated → register schedules
-                scheduler_nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
-
-                for wf_node in scheduler_nodes:
-                    self.trigger_service.handle_node_update(
-                        wf_node.node_type,
-                        wf_node
-                    )
-
+                self.redis_client.publish(
+                    "workflow_events",
+                    json.dumps({"type": WORKFLOW_ACTIVATED, "payload": event_payload})
+                )
             else:
-                # ❌ Workflow deactivated → delete triggers
-                scheduler_nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
-
-                for wf_node in scheduler_nodes:
-                    self.trigger_service.delete_trigger(
-                        wf_node.node_type,
-                        wf_node
-                    )
+                self.redis_client.publish(
+                    "workflow_events",
+                    json.dumps({"type": WORKFLOW_DEACTIVATED, "payload": event_payload})
+                )
 
         return wf_db
-    
+
     def delete_workflow(self, workflow_id: int) -> bool:
         wf = self.repository.get_by_id(workflow_id)
         if not wf:
             return False
 
-        # ✅ Get all nodes belonging to this workflow
-        workflow_nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
+        # Publish deletion event with workflow_id only
+        self.redis_client.publish(
+            "workflow_events",
+            json.dumps({"type": WORKFLOW_DELETED, "payload": {"workflow_id": workflow_id}})
+        )
 
-        # ✅ Loop through each node and delete its trigger if needed
-        for node in workflow_nodes:
-            # You can access type via relationship (node.node.type) or node.node_type if you stored it in schema
-            type = node.node_type
-            if type in ("SchedulerNode", "TriggerNode"):
-                # Call your TriggerService delete logic
-                self.trigger_service.delete_trigger(type, node)
-
-        # ✅ Finally delete the workflow itself
+        # Delete the workflow in DB
         self.repository.delete(workflow_id)
         return True

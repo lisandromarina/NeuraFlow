@@ -10,11 +10,13 @@ from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowReposi
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from dependencies import (
     get_db_session,
+    get_redis_client,
     get_workflow_repository,
     get_workflow_node_repository,
     get_trigger_service
 )
 from sqlalchemy.orm import Session # type: ignore
+from redis import Redis # type: ignore
 
 router = APIRouter(prefix="/workflow", tags=["Workflow"])
 
@@ -23,9 +25,9 @@ router = APIRouter(prefix="/workflow", tags=["Workflow"])
 def get_workflow_service(
     workflow_repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository),
     workflow_node_repo: SqlAlchemyWorkflowNodeRepository = Depends(get_workflow_node_repository),
-    trigger_service: TriggerService = Depends(get_trigger_service)
+    redis_client: Redis = Depends(get_redis_client)
 ) -> WorkflowService:
-    return WorkflowService(workflow_repo, workflow_node_repo, trigger_service)
+    return WorkflowService(workflow_repo, workflow_node_repo, redis_client)
 
 
 @router.get("/", response_model=List[Workflow])

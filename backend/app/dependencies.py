@@ -6,6 +6,8 @@ from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from models.db_models.workflow_db import Base
+from redis import Redis
+import os
 
 DATABASE_URL="postgresql://postgres:postgres@postgres:5432/mydatabase"
 
@@ -37,3 +39,7 @@ def get_workflow_node_repository(db = Depends(get_db_session)):
 def get_trigger_service() -> TriggerService:
     """Provides a new instance of TriggerService"""
     return TriggerService()
+
+def get_redis_client() -> Redis:
+    REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")
+    return Redis.from_url(REDIS_URL)
