@@ -29,5 +29,6 @@ class WorkflowFullSchema(BaseModel):
     description: Optional[str] = None
     nodes: List[WorkflowNodeFullSchema] = []
     connections: List[WorkflowConnectionSchema] = []
+    is_active: bool
 
     model_config = {"from_attributes": True}

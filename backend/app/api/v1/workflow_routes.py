@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from services.workflow_service import WorkflowService
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from dependencies import get_workflow_repository
-from models.schemas.workflow import Workflow, WorkflowUpdate
+from models.schemas.workflow import Workflow, WorkflowPartialUpdate, WorkflowUpdate
 from typing import Dict, List
 from sqlalchemy.orm import Session
 
@@ -39,18 +39,28 @@ def get_workflow(
 @router.put("/{workflow_id}", response_model=Workflow)
 def update_workflow(
     workflow_id: int,
-    workflow_data: WorkflowUpdate,
+    workflow_data: WorkflowPartialUpdate,
     repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)
 ):
     service = WorkflowService(repo)
-    updated = service.update_workflow(
-        workflow_id, 
-        name=workflow_data.name, 
-        description=workflow_data.description
-    )
-    if not updated:
+
+    print("Parsed model:", workflow_data.dict())
+
+    # ✅ Collect only non-null fields
+    update_fields = {
+        key: value
+        for key, value in workflow_data.dict().items()
+        if value is not None
+    }
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No valid fields provided for update")
+
+    updated_workflow = service.update_workflow_fields(workflow_id, update_fields)
+
+    if not updated_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return updated
+
+    return updated_workflow
 
 @router.delete("/{workflow_id}")
 def delete_workflow(
@@ -90,6 +100,7 @@ def get_full_workflow(
         id=workflow.id,
         name=workflow.name,
         description=workflow.description,
+        is_active=workflow.is_active,
         nodes=nodes,
         connections=connections
     )

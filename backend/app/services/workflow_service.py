@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from repositories.workflow_repository import WorkflowRepository
 from models.schemas.workflow import Workflow
 
@@ -17,15 +17,18 @@ class WorkflowService:
     def list_workflows(self) -> List[Workflow]:
         return self.repository.list_all()
 
-    def update_workflow(self, workflow_id: int, name: str, description: str = None) -> Optional[Workflow]:
-        wf = self.repository.get_by_id(workflow_id)
-        if wf:
-            wf.name = name
-            wf.description = description
-            self.repository.update(wf)
-            return wf
-        return None
+    def update_workflow_fields(self, workflow_id: int, update_fields: dict) -> Optional[Workflow]:
+        wf_db = self.repository.get_by_id(workflow_id)
+        if not wf_db:
+            return None
 
+        for field, value in update_fields.items():
+            if hasattr(wf_db, field):
+                setattr(wf_db, field, value)
+
+        self.repository.update(wf_db)  # commits changes
+        return wf_db
+    
     def delete_workflow(self, workflow_id: int) -> bool:
         wf = self.repository.get_by_id(workflow_id)
         if wf:

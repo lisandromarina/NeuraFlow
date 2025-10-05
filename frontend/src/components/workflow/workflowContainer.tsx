@@ -113,12 +113,27 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode,
       console.error("Error creating node:", error);
     }
   };
+
+  const toggleWorkflowActive = async () => {
+    try {
+      const newStatus = !workflowActive;
+      setWorkflowActive(newStatus); // instant UI update
+      console.log(newStatus)
+      await callApi(`/workflow/1`, "PUT", { is_active: newStatus });
+      console.log(`Workflow active state updated to: ${newStatus}`);
+    } catch (err) {
+      console.error("Failed to toggle workflow active state:", err);
+    }
+  };
+
   // Fetch workflow nodes from backend
   const fetchWorkflowNodes = async (workflowId: number) => {
     try {
       const workflow = await callApi(`/workflow/${workflowId}/full`, "GET");
       if (!workflow) return;
       console.log(workflow)
+
+      setWorkflowActive(workflow.is_active);
 
       const mappedNodes = workflow.nodes.map((node: any) => ({
         id: node.id.toString(),
@@ -331,7 +346,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode,
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick} 
       workflowActive={workflowActive}
-      setWorkflowActive={setWorkflowActive}
+      setWorkflowActive={toggleWorkflowActive}
     />
   </div>
   );

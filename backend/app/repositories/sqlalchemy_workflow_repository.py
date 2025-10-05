@@ -24,10 +24,18 @@ class SqlAlchemyWorkflowRepository(WorkflowRepository):
 
     def update(self, workflow: Workflow) -> None:
         wf_db = self.session.query(WorkflowDB).get(workflow.id)
-        if wf_db:
-            wf_db.name = workflow.name
-            wf_db.description = workflow.description
-            self.session.commit()
+        if not wf_db:
+            return
+
+        # Use Pydantic's dict to get only set fields
+        update_data = workflow.dict(exclude_unset=True)
+        
+        for field, value in update_data.items():
+            if hasattr(wf_db, field):
+                setattr(wf_db, field, value)
+
+        self.session.commit()
+
 
     def delete(self, workflow_id: int) -> None:
         wf_db = self.session.query(WorkflowDB).get(workflow_id)
