@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 
 export function LoginComponent() {
   return (
-    <div className="w-full h-screen flex items-center justify-center">
+    <div className="w-full h-screen flex items-center justify-center bg-secondary">
 
       <Card className="w-full max-w-sm">
         <CardHeader>
