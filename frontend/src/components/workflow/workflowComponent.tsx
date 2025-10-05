@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Background, ReactFlow } from "@xyflow/react";
-import type { NodeTypes } from "@xyflow/react";
+import type { NodeTypes, Node } from "@xyflow/react";
+import WorkflowTogglePanel from "../ui/workflow-toggle-panel";
 
 interface WorkflowComponentProps {
   nodes: any[];
@@ -9,13 +10,15 @@ interface WorkflowComponentProps {
   onNodesChange: (changes: any) => void;
   onEdgesChange: (changes: any) => void;
   onConnect: (connection: any) => void;
-  onNodesDelete?: (deletedNodes: any[]) => void;    // NEW
-  onEdgesDelete?: (deletedEdges: any[]) => void;    // NEW
+  onNodesDelete?: (deletedNodes: any[]) => void;
+  onEdgesDelete?: (deletedEdges: any[]) => void;
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
   onNodeDragStop?: (event: any, node: any) => void;
-  onNodeClick?: (event: React.MouseEvent, node: Node) => void
+  onNodeClick?: (event: React.MouseEvent, node: Node) => void;
   onPaneClick?: () => void;
+  workflowActive: boolean;
+  setWorkflowActive: (active: boolean) => void;
 }
 
 const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
@@ -31,8 +34,11 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   onViewportChange,
   onNodeDragStop,
   onNodeClick,
-  onPaneClick
+  onPaneClick,
+  workflowActive,
+  setWorkflowActive
 }) => {
+
   return (
     <div className="w-full h-full">
       <ReactFlow
@@ -52,6 +58,10 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         onPaneClick={() => onPaneClick?.()}
       >
         <Background />
+        <WorkflowTogglePanel
+          workflowActive={workflowActive}
+          onToggle={() => setWorkflowActive(!workflowActive)}
+        />
       </ReactFlow>
     </div>
   );

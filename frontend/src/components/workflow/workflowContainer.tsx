@@ -34,6 +34,7 @@ type WorkflowEdgeType = {
 };
 
 const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode, setOpenRightSidebar }) => {
+  const [workflowActive, setWorkflowActive] = useState(true);
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeType>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeType>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -329,6 +330,8 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode,
       onNodeDragStop={handleNodeDragStop}
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick} 
+      workflowActive={workflowActive}
+      setWorkflowActive={setWorkflowActive}
     />
   </div>
   );
