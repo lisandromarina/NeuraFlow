@@ -17,8 +17,7 @@ def get_workflow_node_service(
     trigger_service: TriggerService = Depends(get_trigger_service),
 ) -> WorkflowNodeService:
     """Factory function to provide a fully constructed WorkflowNodeService"""
-    node_service = NodeService(node_repo)
-    return WorkflowNodeService(workflow_node_repo, node_service, trigger_service)
+    return WorkflowNodeService(workflow_node_repo, node_repo, trigger_service)
 
 
 @router.get("/{node_id}", response_model=WorkflowNodeSchema)

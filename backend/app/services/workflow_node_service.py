@@ -1,20 +1,20 @@
-from fastapi import HTTPException
+from fastapi import HTTPException # type: ignore
 from typing import List, Optional
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from models.db_models.workflow_nodes import WorkflowNode
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
-from services.node_service import NodeService  # <-- Import your NodeService
+from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from services.triggers_services import TriggerService
 
 class WorkflowNodeService:
     def __init__(
             self, 
             workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
-            node_service: NodeService,
+            node_repo: SqlAlchemyNodeRepository,
             trigger_service: TriggerService 
         ):
         self.workflow_node_repo = workflow_node_repo
-        self.node_service = node_service  # Use NodeService instead of direct DB calls
+        self.node_repo = node_repo 
         self.trigger_service = trigger_service
 
 
@@ -37,7 +37,7 @@ class WorkflowNodeService:
             raise ValueError("Node name cannot be empty.")
 
         # 2. Fetch the Node definition
-        db_node = self.node_service.get_node(node_data.node_id)
+        db_node = self.node_repo.get_node(node_data.node_id)
         if not db_node:
             raise HTTPException(status_code=404, detail="Node not found")
 
@@ -70,7 +70,7 @@ class WorkflowNodeService:
 
         updated_node = self.workflow_node_repo.update(node)
 
-        db_node = self.node_service.get_node(node.node_id)
+        db_node = self.node_repo.get_node(node.node_id)
 
         self.trigger_service.handle_node_update(db_node.type, updated_node)
         
@@ -85,7 +85,7 @@ class WorkflowNodeService:
         if not node:
             return False
 
-        db_node = self.node_service.get_node(node.node_id)
+        db_node = self.node_repo.get_node(node.node_id)
         type = db_node.type  
 
         # Delete associated trigger schedule
@@ -109,7 +109,7 @@ class WorkflowNodeService:
         if not workflow_node:
             raise HTTPException(status_code=404, detail="WorkflowNode not found")
 
-        node_metadata = self.node_service.get_node(workflow_node.node_id)
+        node_metadata = self.node_repo.get_node(workflow_node.node_id)
         if not node_metadata:
             raise HTTPException(status_code=404, detail="Node definition not found")
 
