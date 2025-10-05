@@ -51,19 +51,21 @@ class WorkflowService:
             nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
             event_payload = {
                 "workflow_id": workflow_id,
-                "nodes": [{"node_id": n.id, "node_type": n.node_type} for n in nodes]
+                "nodes": [
+                    {
+                        "node_id": n.id,
+                        "node_type": n.node_type,
+                        "custom_config": n.custom_config,  # ✅ include full config
+                    }
+                    for n in nodes
+                ],
             }
 
-            if wf_db.is_active:
-                self.redis_client.publish(
-                    "workflow_events",
-                    json.dumps({"type": WORKFLOW_ACTIVATED, "payload": event_payload})
-                )
-            else:
-                self.redis_client.publish(
-                    "workflow_events",
-                    json.dumps({"type": WORKFLOW_DEACTIVATED, "payload": event_payload})
-                )
+            event_type = WORKFLOW_ACTIVATED if wf_db.is_active else WORKFLOW_DEACTIVATED
+            self.redis_client.publish(
+                "workflow_events",
+                json.dumps({"type": event_type, "payload": event_payload})
+            )
 
         return wf_db
 

@@ -15,10 +15,10 @@ def get_workflow_node_service(
     workflow_node_repo: SqlAlchemyWorkflowNodeRepository = Depends(get_workflow_node_repository),
     node_repo: SqlAlchemyNodeRepository = Depends(get_node_repository),
     workflow_repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository),
-    trigger_service: TriggerService = Depends(get_trigger_service),
+    # trigger_service: TriggerService = Depends(get_trigger_service),
 ) -> WorkflowNodeService:
     """Factory function to provide a fully constructed WorkflowNodeService"""
-    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo, trigger_service)
+    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo)
 
 
 @router.get("/{node_id}", response_model=WorkflowNodeSchema)

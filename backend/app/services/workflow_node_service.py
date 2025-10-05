@@ -13,12 +13,12 @@ class WorkflowNodeService:
             workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
             node_repo: SqlAlchemyNodeRepository,
             workflow_repo: SqlAlchemyWorkflowRepository,
-            trigger_service: TriggerService 
+            # trigger_service: TriggerService 
         ):
         self.workflow_node_repo = workflow_node_repo
         self.node_repo = node_repo 
         self.workflow_repo = workflow_repo
-        self.trigger_service = trigger_service
+        # self.trigger_service = trigger_service
 
 
     # ------------------------
@@ -76,8 +76,8 @@ class WorkflowNodeService:
         db_node = self.node_repo.get_node(node.node_id)
 
         workflow = self.workflow_repo.get_by_id(node.workflow_id)
-        if workflow and workflow.is_active:
-            self.trigger_service.handle_node_update(db_node.type, updated_node)
+        # if workflow and workflow.is_active:
+            # self.trigger_service.handle_node_update(db_node.type, updated_node)
         
         return updated_node
 
@@ -94,7 +94,7 @@ class WorkflowNodeService:
         type = db_node.type  
 
         # Delete associated trigger schedule
-        self.trigger_service.delete_trigger(type, node)
+        # self.trigger_service.delete_trigger(type, node)
 
         return self.workflow_node_repo.delete(node_id)
 
