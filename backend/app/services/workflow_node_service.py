@@ -1,11 +1,14 @@
+import json
+from core.events import WORKFLOW_UPDATED
 from fastapi import HTTPException # type: ignore
 from typing import List, Optional
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from models.db_models.workflow_nodes import WorkflowNode
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
+from repositories.redis_repository import RedisRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
-from services.triggers_services import TriggerService
+from redis import Redis # type: ignore
 
 class WorkflowNodeService:
     def __init__(
@@ -13,12 +16,12 @@ class WorkflowNodeService:
             workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
             node_repo: SqlAlchemyNodeRepository,
             workflow_repo: SqlAlchemyWorkflowRepository,
-            # trigger_service: TriggerService 
+            redis_client: Redis
         ):
         self.workflow_node_repo = workflow_node_repo
         self.node_repo = node_repo 
         self.workflow_repo = workflow_repo
-        # self.trigger_service = trigger_service
+        self.redis_client = redis_client
 
 
     # ------------------------
@@ -64,21 +67,37 @@ class WorkflowNodeService:
     # ------------------------
     def update_node(self, node_id: int, update_data: WorkflowNodeUpdate):
         node = self.workflow_node_repo.get_by_id(node_id)
-
         if not node:
             return None
 
+        # Apply updates
         for field, value in update_data.dict(exclude_unset=True).items():
             setattr(node, field, value)
 
         updated_node = self.workflow_node_repo.update(node)
-
         db_node = self.node_repo.get_node(node.node_id)
-
         workflow = self.workflow_repo.get_by_id(node.workflow_id)
-        # if workflow and workflow.is_active:
-            # self.trigger_service.handle_node_update(db_node.type, updated_node)
-        
+
+        # ✅ If workflow is active, notify scheduler
+        if workflow and workflow.is_active and db_node.type == "SchedulerNode":
+            print("HERE")
+            print(updated_node.custom_config)
+            event_payload = {
+                "workflow_id": workflow.id,
+                "nodes": [
+                    {
+                        "node_id": updated_node.id,
+                        "node_type": db_node.type,
+                        "custom_config": updated_node.custom_config,
+                    }
+                ],
+            }
+
+            self.redis_client.publish(
+                "workflow_events",
+                json.dumps({"type": WORKFLOW_UPDATED, "payload": event_payload})
+            )
+
         return updated_node
 
 

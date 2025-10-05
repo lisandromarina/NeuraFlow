@@ -6,7 +6,8 @@ from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate,
 from services.workflow_node_service import WorkflowNodeService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
-from dependencies import get_workflow_repository, get_workflow_node_repository, get_node_repository, get_trigger_service
+from dependencies import get_redis_client, get_workflow_repository, get_workflow_node_repository, get_node_repository, get_trigger_service
+from redis import Redis # type: ignore
 
 router = APIRouter(prefix="/workflow-nodes", tags=["Workflow Nodes"])
 
@@ -15,10 +16,11 @@ def get_workflow_node_service(
     workflow_node_repo: SqlAlchemyWorkflowNodeRepository = Depends(get_workflow_node_repository),
     node_repo: SqlAlchemyNodeRepository = Depends(get_node_repository),
     workflow_repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository),
+    redis_client: Redis = Depends(get_redis_client)
     # trigger_service: TriggerService = Depends(get_trigger_service),
 ) -> WorkflowNodeService:
     """Factory function to provide a fully constructed WorkflowNodeService"""
-    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo)
+    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo, redis_client)
 
 
 @router.get("/{node_id}", response_model=WorkflowNodeSchema)

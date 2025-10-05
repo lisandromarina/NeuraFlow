@@ -16,12 +16,29 @@ class SchedulerService:
 
     def remove_schedule(self, workflow_id):
         schedules = self.redis.zrange(WORKFLOW_SCHEDULES_ZSET, 0, -1)
+        removed = False
+
         for raw in schedules:
             raw_str = raw.decode() if isinstance(raw, bytes) else raw
-            data = json.loads(raw_str)
-            if str(data["workflow_id"]) == str(workflow_id):
-                self.redis.zrem(WORKFLOW_SCHEDULES_ZSET, raw)
-                print(f"[SchedulerService] ❌ Removed schedule for workflow {workflow_id}")
+            try:
+                data = json.loads(raw_str)
+                if str(data.get("workflow_id")) == str(workflow_id):
+                    self.redis.zrem(WORKFLOW_SCHEDULES_ZSET, raw)
+                    removed = True
+            except json.JSONDecodeError:
+                continue
+
+        if removed:
+            print(f"[SchedulerService] ❌ Removed all schedules for workflow {workflow_id}")
+        else:
+            print(f"[SchedulerService] ⚠️ No schedules found to remove for workflow {workflow_id}")
+
+    def update_schedule(self, schedule):
+        # Remove old schedules for this workflow
+        self.remove_schedule(schedule.workflow_id)
+
+        # Register new schedule with updated interval
+        self.register_schedule(schedule)
 
     def process_due_schedules(self):
         now_ts = datetime.datetime.utcnow().timestamp()
