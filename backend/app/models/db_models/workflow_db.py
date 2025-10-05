@@ -9,7 +9,7 @@ class WorkflowDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
 
     nodes = relationship("WorkflowNode", back_populates="workflow", cascade="all, delete-orphan")
     connections = relationship("WorkflowConnection", back_populates="workflow", cascade="all, delete-orphan")
