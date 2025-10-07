@@ -4,7 +4,6 @@ from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowN
 from repositories.workflow_repository import WorkflowRepository
 from models.schemas.workflow import Workflow
 from core.events import WORKFLOW_ACTIVATED, WORKFLOW_DEACTIVATED, WORKFLOW_DELETED
-import json
 
 class WorkflowService:
     def __init__(
@@ -45,13 +44,14 @@ class WorkflowService:
         self.repository.update(wf_db)
 
         if is_active_changed:
-            nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
+            nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "trigger")
             event_payload = {
                 "workflow_id": workflow_id,
                 "nodes": [
                     {
                         "node_id": n.id,
                         "node_type": n.node_type,
+                        "node_category": n.node_category,
                         "custom_config": n.custom_config,
                     }
                     for n in nodes

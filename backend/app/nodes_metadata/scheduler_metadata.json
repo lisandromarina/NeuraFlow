@@ -1,6 +1,7 @@
 {
   "name": "Scheduler Node",
-  "type": "SchedulerNode",
+  "type": "trigger",
+  "category": "SchedulerNode",
   "config_metadata": {
     "inputs": [
       {

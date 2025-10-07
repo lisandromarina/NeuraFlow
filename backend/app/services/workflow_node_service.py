@@ -80,13 +80,14 @@ class WorkflowNodeService:
         workflow = self.workflow_repo.get_by_id(node.workflow_id)
 
         # ✅ If workflow is active, notify scheduler
-        if workflow and workflow.is_active and db_node.type == "SchedulerNode":
+        if workflow and workflow.is_active and db_node.type == "trigger":
             event_payload = {
                 "workflow_id": workflow.id,
                 "nodes": [
                     {
                         "node_id": updated_node.id,
                         "node_type": db_node.type,
+                        "node_category": db_node.category,
                         "custom_config": updated_node.custom_config,
                     }
                 ],

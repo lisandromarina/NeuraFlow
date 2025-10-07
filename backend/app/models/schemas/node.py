@@ -5,6 +5,7 @@ from typing import Optional, Dict
 class NodeBase(BaseModel):
     name: str
     type: str
+    category: str
     config_metadata: Optional[Dict] = None
 
 
@@ -14,6 +15,7 @@ class NodeCreate(NodeBase):
 
 class NodeUpdate(BaseModel):
     type: Optional[str] = None
+    category: Optional[str] = None
     config_metadata: Optional[Dict] = None
 
 

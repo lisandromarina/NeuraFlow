@@ -1,6 +1,7 @@
 {
   "name": "Call External API",
-  "type": "HttpNode",
+  "type": "action",
+  "category": "HttpNode",
   "config_metadata": {
     "inputs": [
       {

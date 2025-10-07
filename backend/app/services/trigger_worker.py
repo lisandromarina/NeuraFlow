@@ -27,6 +27,7 @@ class TriggerWorker:
             )
 
             if not msgs:
+                print("[TriggerWorker] No messages yet...")
                 continue
 
             for stream, entries in msgs:

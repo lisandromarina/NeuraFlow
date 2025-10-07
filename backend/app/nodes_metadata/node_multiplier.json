@@ -1,6 +1,7 @@
 {
   "name" : "Multiply Node",
-  "type": "MultiplyNode",
+  "type" : "action",
+  "category": "MultiplyNode",
   "config_metadata": {
     "inputs": [
         { "name": "factorA", "label": "Factor A", "type": "number", "required": true, "default": 1 },

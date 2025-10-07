@@ -33,6 +33,7 @@ class WorkflowNodeSchema(BaseModel):
     position_y: float  # <-- change to float
     custom_config: dict | None = None
 
-    node_type: Optional[str] = None 
+    node_type: Optional[str] = None
+    node_category: Optional[str] = None 
 
     model_config = {"from_attributes": True}

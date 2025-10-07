@@ -25,19 +25,20 @@ class SqlAlchemyWorkflowNodeRepository:
     
     def list_by_workflow_and_type(self, workflow_id: int, node_type: str) -> List[WorkflowNodeSchema]:
         nodes_db = (
-            self.session.query(WorkflowNodeDB, Node.type)
+            self.session.query(WorkflowNodeDB, Node.type, Node.category)
             .join(Node, WorkflowNodeDB.node_id == Node.id)
             .filter(
                 WorkflowNodeDB.workflow_id == workflow_id,
-                Node.type == node_type
+                Node.type == node_type  # e.g. "trigger" or "action"
             )
             .all()
         )
 
         result = []
-        for node_db, type_value in nodes_db:
+        for node_db, type_value, category_value in nodes_db:
             node_schema = WorkflowNodeSchema.from_orm(node_db)
             node_schema.node_type = type_value
+            node_schema.node_category = category_value
             result.append(node_schema)
 
         return result
