@@ -4,8 +4,8 @@ from typing import Dict, List
 from models.db_models.workflow_db import WorkflowDB
 from models.schemas.full_workflow import WorkflowConnectionSchema, WorkflowFullSchema, WorkflowNodeFullSchema
 from models.schemas.workflow import Workflow, WorkflowPartialUpdate
+from services.redis_service import RedisService
 from services.workflow_service import WorkflowService
-from services.triggers_services import TriggerService
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from dependencies import (
@@ -27,8 +27,8 @@ def get_workflow_service(
     workflow_node_repo: SqlAlchemyWorkflowNodeRepository = Depends(get_workflow_node_repository),
     redis_client: Redis = Depends(get_redis_client)
 ) -> WorkflowService:
-    return WorkflowService(workflow_repo, workflow_node_repo, redis_client)
-
+    redis_service = RedisService(redis_client)
+    return WorkflowService(workflow_repo, workflow_node_repo, redis_service)
 
 @router.get("/", response_model=List[Workflow])
 def list_workflows(service: WorkflowService = Depends(get_workflow_service)):

@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
 from typing import List, Optional
-from services.triggers_services import TriggerService
+from services.redis_service import RedisService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.workflow_repository import WorkflowRepository
 from models.schemas.workflow import Workflow
@@ -12,11 +11,11 @@ class WorkflowService:
         self,
         repository: WorkflowRepository,
         wn_repository: SqlAlchemyWorkflowNodeRepository,
-        redis_client,  # Redis dependency injected
+        redis_service: RedisService,  # Redis dependency injected
     ):
         self.repository = repository
         self.wn_repository = wn_repository
-        self.redis_client = redis_client
+        self.redis_service = redis_service
 
     def get_workflow(self, workflow_id: int) -> Optional[Workflow]:
         return self.repository.get_by_id(workflow_id)
@@ -37,7 +36,6 @@ class WorkflowService:
         old_is_active = wf_db.is_active
         is_active_changed = False
 
-        # Update fields dynamically
         for field, value in update_fields.items():
             if hasattr(wf_db, field):
                 setattr(wf_db, field, value)
@@ -46,7 +44,6 @@ class WorkflowService:
 
         self.repository.update(wf_db)
 
-        # Handle activation/deactivation via Redis events
         if is_active_changed:
             nodes = self.wn_repository.list_by_workflow_and_type(workflow_id, "SchedulerNode")
             event_payload = {
@@ -55,17 +52,13 @@ class WorkflowService:
                     {
                         "node_id": n.id,
                         "node_type": n.node_type,
-                        "custom_config": n.custom_config,  # ✅ include full config
+                        "custom_config": n.custom_config,
                     }
                     for n in nodes
                 ],
             }
-
             event_type = WORKFLOW_ACTIVATED if wf_db.is_active else WORKFLOW_DEACTIVATED
-            self.redis_client.publish(
-                "workflow_events",
-                json.dumps({"type": event_type, "payload": event_payload})
-            )
+            self.redis_service.publish_event(event_type, event_payload)
 
         return wf_db
 
@@ -74,12 +67,7 @@ class WorkflowService:
         if not wf:
             return False
 
-        # Publish deletion event with workflow_id only
-        self.redis_client.publish(
-            "workflow_events",
-            json.dumps({"type": WORKFLOW_DELETED, "payload": {"workflow_id": workflow_id}})
-        )
+        self.redis_service.publish_event(WORKFLOW_DELETED, {"workflow_id": workflow_id})
 
-        # Delete the workflow in DB
         self.repository.delete(workflow_id)
         return True
