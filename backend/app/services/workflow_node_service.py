@@ -105,12 +105,6 @@ class WorkflowNodeService:
         if not node:
             return False
 
-        db_node = self.node_repo.get_node(node.node_id)
-        node_type = db_node.type  
-
-        # Delete associated trigger schedule
-        # self.trigger_service.delete_trigger(node_type, node)
-
         deleted = self.workflow_node_repo.delete(node_id)
 
         if deleted:
