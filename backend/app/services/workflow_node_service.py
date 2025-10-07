@@ -1,5 +1,5 @@
 import json
-from core.events import WORKFLOW_UPDATED
+from core.events import WORKFLOW_DELETED, WORKFLOW_UPDATED
 from fastapi import HTTPException # type: ignore
 from typing import List, Optional
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
@@ -106,12 +106,18 @@ class WorkflowNodeService:
             return False
 
         db_node = self.node_repo.get_node(node.node_id)
-        type = db_node.type  
+        node_type = db_node.type  
 
         # Delete associated trigger schedule
-        # self.trigger_service.delete_trigger(type, node)
+        # self.trigger_service.delete_trigger(node_type, node)
 
-        return self.workflow_node_repo.delete(node_id)
+        deleted = self.workflow_node_repo.delete(node_id)
+
+        if deleted:
+            # Notify Redis that a workflow node was deleted
+            self.redis_service.publish_event(WORKFLOW_DELETED, {"workflow_id": node.workflow_id})
+
+        return deleted
 
     def delete_all_nodes_in_workflow(self, workflow_id: int) -> None:
         self.workflow_node_repo.delete_by_workflow(workflow_id)
