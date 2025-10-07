@@ -1,4 +1,3 @@
-from services.triggers_services import TriggerService
 from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
