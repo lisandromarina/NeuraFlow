@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body # type: ignore
 from typing import Dict, List
 
 from models.db_models.workflow_db import WorkflowDB
@@ -13,7 +13,6 @@ from dependencies import (
     get_redis_client,
     get_workflow_repository,
     get_workflow_node_repository,
-    get_trigger_service
 )
 from sqlalchemy.orm import Session # type: ignore
 from redis import Redis # type: ignore

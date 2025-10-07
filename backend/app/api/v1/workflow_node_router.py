@@ -1,5 +1,4 @@
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
-from services.triggers_services import TriggerService
 from fastapi import APIRouter, Depends, HTTPException # type: ignore
 from typing import List
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
@@ -7,7 +6,7 @@ from services.redis_service import RedisService
 from services.workflow_node_service import WorkflowNodeService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
-from dependencies import get_redis_client, get_workflow_repository, get_workflow_node_repository, get_node_repository, get_trigger_service
+from dependencies import get_redis_client, get_workflow_repository, get_workflow_node_repository, get_node_repository
 from redis import Redis # type: ignore
 
 router = APIRouter(prefix="/workflow-nodes", tags=["Workflow Nodes"])

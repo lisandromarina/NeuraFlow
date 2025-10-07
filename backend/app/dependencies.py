@@ -36,10 +36,6 @@ def get_node_repository(db = Depends(get_db_session)):
 def get_workflow_node_repository(db = Depends(get_db_session)):
     return SqlAlchemyWorkflowNodeRepository(db)
 
-def get_trigger_service() -> TriggerService:
-    """Provides a new instance of TriggerService"""
-    return TriggerService()
-
 def get_redis_client() -> Redis:
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")
     return Redis.from_url(REDIS_URL)
