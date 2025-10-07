@@ -4,6 +4,7 @@ from fastapi import HTTPException # type: ignore
 from typing import List, Optional
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from models.db_models.workflow_nodes import WorkflowNode
+from services.redis_service import RedisService
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.redis_repository import RedisRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
@@ -16,12 +17,12 @@ class WorkflowNodeService:
             workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
             node_repo: SqlAlchemyNodeRepository,
             workflow_repo: SqlAlchemyWorkflowRepository,
-            redis_client: Redis
+            redis_service: RedisService,
         ):
         self.workflow_node_repo = workflow_node_repo
         self.node_repo = node_repo 
         self.workflow_repo = workflow_repo
-        self.redis_client = redis_client
+        self.redis_service = redis_service
 
 
     # ------------------------
@@ -80,8 +81,6 @@ class WorkflowNodeService:
 
         # ✅ If workflow is active, notify scheduler
         if workflow and workflow.is_active and db_node.type == "SchedulerNode":
-            print("HERE")
-            print(updated_node.custom_config)
             event_payload = {
                 "workflow_id": workflow.id,
                 "nodes": [
@@ -93,10 +92,7 @@ class WorkflowNodeService:
                 ],
             }
 
-            self.redis_client.publish(
-                "workflow_events",
-                json.dumps({"type": WORKFLOW_UPDATED, "payload": event_payload})
-            )
+            self.redis_service.publish_event(WORKFLOW_UPDATED, event_payload)
 
         return updated_node
 

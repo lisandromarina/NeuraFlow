@@ -3,6 +3,7 @@ from services.triggers_services import TriggerService
 from fastapi import APIRouter, Depends, HTTPException # type: ignore
 from typing import List
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
+from services.redis_service import RedisService
 from services.workflow_node_service import WorkflowNodeService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
@@ -20,7 +21,8 @@ def get_workflow_node_service(
     # trigger_service: TriggerService = Depends(get_trigger_service),
 ) -> WorkflowNodeService:
     """Factory function to provide a fully constructed WorkflowNodeService"""
-    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo, redis_client)
+    redis_service = RedisService(redis_client)
+    return WorkflowNodeService(workflow_node_repo, node_repo, workflow_repo, redis_service)
 
 
 @router.get("/{node_id}", response_model=WorkflowNodeSchema)
