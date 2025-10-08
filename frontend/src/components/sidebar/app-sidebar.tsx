@@ -1,5 +1,5 @@
 import React from "react";
-import ThemeModeToggle from "./ThemeModeToggle";
+import ThemeModeToggle from "../ui/ThemeModeToggle";
 
 import {
   Sidebar,
@@ -12,13 +12,14 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { ChevronUp, User2 } from "lucide-react";
 
 interface Node {
   id: number;
   title: string;
   type: string;
+  category: string
 }
 
 interface AppSidebarProps {
@@ -26,9 +27,12 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ nodes }: AppSidebarProps) {
+  console.log(nodes)
   const onDragStart = (event: React.DragEvent, node: Node) => {
     event.dataTransfer.setData("application/reactflow", JSON.stringify({
       type: node.type,
+      category: node.category,
+      title: node.title,
       id: node.id
     }));
     event.dataTransfer.effectAllowed = "move";
@@ -53,7 +57,7 @@ export function AppSidebar({ nodes }: AppSidebarProps) {
                       onDragStart={(e) => onDragStart(e, node)}
                       className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-200 rounded"
                     >
-                      <span>{node.type}</span>
+                      <span>{node.title}</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

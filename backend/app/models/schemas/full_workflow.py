@@ -15,6 +15,7 @@ class WorkflowNodeFullSchema(BaseModel):
     workflow_id: int
     node_id: int
     name: str
+    node_category: str
     position_x: float
     position_y: float
     custom_config: Optional[dict] = None

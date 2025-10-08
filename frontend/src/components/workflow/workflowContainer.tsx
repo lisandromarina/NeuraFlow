@@ -78,7 +78,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode,
     const nodeData = event.dataTransfer.getData("application/reactflow");
     if (!nodeData) return;
 
-    const { type: actualType, id: nodeId } = JSON.parse(nodeData);
+    const { id: nodeId, category: actualTitle } = JSON.parse(nodeData);
 
     const position = {
       x: (event.clientX - reactFlowBounds.left - viewport.x) / viewport.zoom,
@@ -102,7 +102,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode,
           data: {
             label: createdNode.name,
             customConfig: createdNode.custom_config,
-            actualType, // store the real node type here
+            actualType: actualTitle, // store the real node type here
           },
         };
 
@@ -142,7 +142,7 @@ const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode,
         data: {
           content: node.name,            // main label
           customConfig: node.custom_config, 
-          actualType: node.node_type,    // pass backend type here
+          actualType: node.node_category,    // pass backend type here
         },
       }));
 

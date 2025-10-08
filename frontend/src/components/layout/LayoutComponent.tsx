@@ -1,12 +1,13 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "../ui/app-sidebar";
+import { AppSidebar } from "../sidebar/app-sidebar";
 import Workflow from "../workflow";
-import { RightAppSidebar } from "../ui/right-app-sidebar";
+import { RightAppSidebar } from "../sidebar/right-app-sidebar";
 
 interface Node {
   id: number;
   title: string;
   type: string;
+  category: string
 }
 
 interface LayoutComponentProps {

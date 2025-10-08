@@ -92,7 +92,8 @@ def get_full_workflow(
     nodes = [
         WorkflowNodeFullSchema.from_orm({
             **w_node.__dict__,
-            "node_type": w_node.node.type if w_node.node else None
+            "node_type": w_node.node.type if w_node.node else None,
+            "node_category": w_node.node.category if w_node.node else None
         })
         for w_node in workflow.nodes
     ]

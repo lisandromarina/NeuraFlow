@@ -7,7 +7,7 @@ import {
   SidebarGroupLabel,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Field } from "./fields";
+import { Field } from "../ui/fields";
 import { useApi } from "../../api/useApi";
 
 interface RightAppSidebarProps {

@@ -6,11 +6,13 @@ interface ApiNode {
   id: number;
   name: string;
   type: string;
+  category: string;
 }
 
 interface SidebarNode {
   id: number;
   title: string;
+  category: string;
   type: string;
 }
 
@@ -33,6 +35,7 @@ const LayoutContainer: React.FC = () => {
       const mappedNodes: SidebarNode[] = data.map((node) => ({
         id: node.id,
         title: node.name, 
+        category: node.category,
         type: node.type,
       }));
 
