@@ -1,5 +1,6 @@
 import React from "react";
 import ThemeModeToggle from "../ui/ThemeModeToggle";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   Sidebar,
@@ -27,7 +28,12 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ nodes }: AppSidebarProps) {
-  console.log(nodes)
+  const { logout } = useAuth();
+
+  const onLogout = () => {
+    logout(); 
+  };
+
   const onDragStart = (event: React.DragEvent, node: Node) => {
     event.dataTransfer.setData("application/reactflow", JSON.stringify({
       type: node.type,
@@ -86,7 +92,7 @@ export function AppSidebar({ nodes }: AppSidebarProps) {
                   <DropdownMenuItem>
                     <span>Billing</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={onLogout}>
                     <span>Sign out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

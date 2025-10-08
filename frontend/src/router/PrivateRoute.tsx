@@ -1,14 +1,19 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { AppContext } from "../components/app-provider"; // make sure path is correct
+import { useAuth } from "@/context/AuthContext"; // adjust path
 
 const PrivateRoute: React.FC = () => {
-  const { user } = useContext(AppContext); // get user from context
+  const { token, loading } = useAuth();
 
-  if (!user) {
+  // While checking token, render nothing or a loader
+  if (loading) return null;
+
+  // If not logged in, redirect to login page
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
+  // If logged in, render the protected route
   return <Outlet />;
 };
 

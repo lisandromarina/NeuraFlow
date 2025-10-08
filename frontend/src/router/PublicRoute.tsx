@@ -1,12 +1,15 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { AppContext } from "../components/app-provider"; // adjust path
+import { useAuth } from "@/context/AuthContext"; // adjust path
 
 const PublicRoute: React.FC = () => {
-  const { user } = useContext(AppContext); // get user from context
+  const { token, loading } = useAuth();
 
-  // If user exists, redirect to homepage
-  if (user) {
+  // Show nothing or a loader while checking token
+  if (loading) return null;
+
+  // If user is logged in (token exists), redirect to protected page
+  if (token) {
     return <Navigate to="/workflow" replace />;
   }
 
