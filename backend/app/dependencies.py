@@ -1,11 +1,12 @@
-from fastapi import Depends
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from fastapi import Depends # type: ignore
+from sqlalchemy import create_engine # type: ignore
+from sqlalchemy.orm import sessionmaker # type: ignore
+from repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from models.db_models.workflow_db import Base
-from redis import Redis
+from redis import Redis # type: ignore
 import os
 
 DATABASE_URL="postgresql://postgres:postgres@postgres:5432/mydatabase"
@@ -34,6 +35,9 @@ def get_node_repository(db = Depends(get_db_session)):
 
 def get_workflow_node_repository(db = Depends(get_db_session)):
     return SqlAlchemyWorkflowNodeRepository(db)
+
+def get_user_repository(db = Depends(get_db_session)):
+    return SqlAlchemyUserRepository(db)
 
 def get_redis_client() -> Redis:
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.v1 import workflow_routes
+from api.v1 import auth_routes
 from api.v1 import node_routes
 from api.v1 import workflow_node_router
 from api.v1 import workflow_connection_routes
@@ -21,6 +22,7 @@ app.include_router(workflow_routes.router)
 app.include_router(node_routes.router)
 app.include_router(workflow_node_router.router)
 app.include_router(workflow_connection_routes.router)
+app.include_router(auth_routes.router)
 
 
 @app.get("/ping")
