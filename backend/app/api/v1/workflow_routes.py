@@ -39,8 +39,11 @@ def create_workflow(
     workflow: Workflow, 
     service: WorkflowService = Depends(get_workflow_service)
 ):
-    return service.create_workflow(name=workflow.name, description=workflow.description)
-
+    return service.create_workflow(
+        name=workflow.name,
+        description=workflow.description,
+        user_id=workflow.user_id 
+    )
 
 @router.get("/{workflow_id}", response_model=Workflow)
 def get_workflow(

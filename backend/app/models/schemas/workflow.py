@@ -6,6 +6,7 @@ class Workflow(BaseModel):
     name: str
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    user_id: int = None
     
     model_config = {
         "from_attributes": True  # <-- required for from_orm() in Pydantic v2

@@ -19,8 +19,8 @@ class WorkflowService:
     def get_workflow(self, workflow_id: int) -> Optional[Workflow]:
         return self.repository.get_by_id(workflow_id)
 
-    def create_workflow(self, name: str, description: str = None) -> Workflow:
-        wf = Workflow(name=name, description=description)
+    def create_workflow(self, name: str, description: str = None, user_id: int = None) -> Workflow:
+        wf = Workflow(name=name, description=description, user_id=user_id)
         self.repository.add(wf)
         return wf
 
