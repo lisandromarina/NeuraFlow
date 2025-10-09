@@ -71,3 +71,6 @@ class WorkflowService:
 
         self.repository.delete(workflow_id)
         return True
+    
+    def get_workflows_by_user(self, user_id: int):
+        return self.repository.get_by_user_id(user_id)

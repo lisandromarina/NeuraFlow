@@ -132,3 +132,17 @@ def execute_workflow(
         raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
 
     return {"message": f"Workflow {workflow_id} executed successfully"}
+
+
+@router.get("/user/{user_id}", response_model=List[Workflow])
+def get_workflows_by_user(
+    user_id: int,
+    service: WorkflowService = Depends(get_workflow_service)
+):
+    """
+    Get all workflows belonging to a specific user.
+    """
+    workflows = service.get_workflows_by_user(user_id)
+    if not workflows:
+        raise HTTPException(status_code=404, detail="No workflows found for this user")
+    return workflows

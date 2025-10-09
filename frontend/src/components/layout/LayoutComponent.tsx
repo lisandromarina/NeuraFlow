@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "../sidebar/app-sidebar";
 import Workflow from "../workflow";
 import { RightAppSidebar } from "../sidebar/right-app-sidebar";
@@ -7,11 +7,20 @@ interface Node {
   id: number;
   title: string;
   type: string;
-  category: string
+  category: string;
+}
+
+interface WorkflowType {
+  id: number;
+  name: string;
+  description: string;
+  is_active: boolean;
+  user_id: number;
 }
 
 interface LayoutComponentProps {
   nodes: Node[];
+  workflows: WorkflowType[];
   selectedNode: any;
   setSelectedNode: (node: any) => void;
   isRightSidebarOpen: boolean;
@@ -20,6 +29,7 @@ interface LayoutComponentProps {
 
 export default function LayoutComponent({
   nodes,
+  workflows,
   selectedNode,
   setSelectedNode,
   isRightSidebarOpen,
@@ -28,17 +38,17 @@ export default function LayoutComponent({
   return (
     <div className="h-screen overflow-hidden">
       <SidebarProvider className="bg-background">
-        <AppSidebar nodes={nodes} />
-        <SidebarTrigger className="p-auto"/>
+        <AppSidebar nodes={nodes} workflows={workflows} />
         <main className="w-full">
-          <Workflow 
-            setOpenRightSidebar={setIsRightSidebarOpen} 
+          <Workflow
+            setOpenRightSidebar={setIsRightSidebarOpen}
             setSelectedNode={setSelectedNode}
           />
         </main>
       </SidebarProvider>
-      <SidebarProvider open={isRightSidebarOpen}  >
-        <RightAppSidebar node={selectedNode}/>
+
+      <SidebarProvider open={isRightSidebarOpen}>
+        <RightAppSidebar node={selectedNode} />
       </SidebarProvider>
     </div>
   );

@@ -42,3 +42,6 @@ class SqlAlchemyWorkflowRepository(WorkflowRepository):
         if wf_db:
             self.session.delete(wf_db)
             self.session.commit()
+
+    def get_by_user_id(self, user_id: int):
+        return self.session.query(WorkflowDB).filter(WorkflowDB.user_id == user_id).all()

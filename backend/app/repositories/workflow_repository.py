@@ -22,3 +22,7 @@ class WorkflowRepository(ABC):
     @abstractmethod
     def delete(self, workflow_id: int) -> None:
         pass
+
+    @abstractmethod
+    def get_by_user_id(self, user_id: int) -> None:
+        pass
