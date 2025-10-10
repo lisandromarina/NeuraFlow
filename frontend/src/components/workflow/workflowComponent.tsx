@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Background, ReactFlow } from "@xyflow/react";
 import type { NodeTypes, Node } from "@xyflow/react";
 import WorkflowTogglePanel from "../ui/workflow-toggle-panel";
