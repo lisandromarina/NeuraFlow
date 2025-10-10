@@ -16,6 +16,7 @@ const WorkflowTogglePanel: React.FC<WorkflowTogglePanelProps> = ({
     <Panel
       className="flex items-center justify-between gap-2 rounded-lg bg-secondary p-3 text-foreground shadow-md min-w-[180px]"
       position="bottom-center"
+      style={{ bottom: 40 }}
     >
       <div className="flex flex-col">
         <Label htmlFor="workflow-toggle" className="text-sm font-medium">
