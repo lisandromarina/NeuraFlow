@@ -100,10 +100,6 @@ export function AppSidebar({ nodes = [], workflows = [] }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup>
-          <ThemeModeToggle />
-        </SidebarGroup>
-
-        <SidebarGroup>
           <SidebarGroupLabel>Nodes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -138,6 +134,7 @@ export function AppSidebar({ nodes = [], workflows = [] }: AppSidebarProps) {
               <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
                 <DropdownMenuItem><span>Account</span></DropdownMenuItem>
                 <DropdownMenuItem><span>Billing</span></DropdownMenuItem>
+                <DropdownMenuItem> Theme <ThemeModeToggle /></DropdownMenuItem>
                 <DropdownMenuItem onClick={onLogout}><span>Sign out</span></DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -36,6 +36,17 @@ export function ThemeProvider({
     }
   }, [storedTheme, storageKey]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (storedTheme.mode === 'system') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.toggle('dark', isDark);
+    } else {
+      root.classList.toggle('dark', storedTheme.mode === 'dark');
+    }
+  }, [storedTheme.mode]);
+
   const value = {
     theme: storedTheme,
     setTheme: (theme: Theme) => {

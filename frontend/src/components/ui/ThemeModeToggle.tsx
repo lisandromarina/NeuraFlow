@@ -7,7 +7,7 @@ export default function ThemeModeToggle() {
   const { setTheme, theme } = useTheme();
   return (
     <Button
-      variant="outline"
+      //variant="outline"
       size="icon"
       className="h-full titlebar-button focus-visible:ring-0 bg-transparent hover:bg-transparent
         border-0 hover:brightness-150 hover:shadow-none hover:border-0 duration-500
