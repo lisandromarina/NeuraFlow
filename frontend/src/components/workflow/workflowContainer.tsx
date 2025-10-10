@@ -118,7 +118,7 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
     const bounds = reactFlowWrapper.current.getBoundingClientRect();
     const nodeData = event.dataTransfer.getData("application/reactflow");
     if (!nodeData) return;
-    console.log(nodeData)
+
     const { id, category, title } = JSON.parse(nodeData);
     const position = { x: (event.clientX - bounds.left - viewport.x) / viewport.zoom, y: (event.clientY - bounds.top - viewport.y) / viewport.zoom };
 
