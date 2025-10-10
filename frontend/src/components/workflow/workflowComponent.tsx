@@ -3,6 +3,11 @@ import { Background, ReactFlow } from "@xyflow/react";
 import type { NodeTypes, Node } from "@xyflow/react";
 import WorkflowTogglePanel from "../ui/workflow-toggle-panel";
 
+export interface WorkflowNodeType extends Node {
+  type: string; // ensure it's defined, not optional
+  category: string;
+}
+
 interface WorkflowComponentProps {
   nodes: any[];
   edges: any[];
@@ -15,7 +20,7 @@ interface WorkflowComponentProps {
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
   onNodeDragStop?: (event: any, node: any) => void;
-  onNodeClick?: (event: React.MouseEvent, node: Node) => void;
+  onNodeClick?: (event: React.MouseEvent, node: WorkflowNodeType) => void; 
   onPaneClick?: () => void;
   workflowActive: boolean;
   setWorkflowActive: (active: boolean) => void;
