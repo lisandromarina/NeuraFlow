@@ -1,15 +1,17 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useNodesState, useEdgesState } from "@xyflow/react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
 import PlaceholderNodeDemo from "../placeholderdemo";
 import BaseHandle from "../base-handler-demo";
 import { useApi } from "../../api/useApi";
+import { useWorkflow } from "@/context/WorkflowContext";
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
   MultiplyNode: BaseHandle,
-  HttpNode: BaseHandle
+  HttpNode: BaseHandle,
+  SchedulerNode: BaseHandle,
 };
 
 interface WorkflowContainerProps {
@@ -33,322 +35,179 @@ type WorkflowEdgeType = {
   [key: string]: any;
 };
 
-const WorkflowContainer:  React.FC<WorkflowContainerProps> = ({ setSelectedNode, setOpenRightSidebar }) => {
+const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
+  setSelectedNode,
+  setOpenRightSidebar,
+}) => {
+  const { selectedWorkflowId } = useWorkflow();
+  const { callApi } = useApi();
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
   const [workflowActive, setWorkflowActive] = useState(true);
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeType>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeType>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
-  const { callApi } = useApi();
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [_, setRfInstance] = useState<any>(null);
 
-  const handleNodeClick = async (_: React.MouseEvent, node: WorkflowNodeType) => {
-    console.log("Node clicked", node);
-    
+  /** Generic safe API wrapper */
+  const safeApi = async (fn: () => Promise<any>, fallback: any = null) => {
     try {
-      // 1️⃣ Fetch the UI schema for this node
-      const uiSchema = await callApi(`/workflow-nodes/ui-schema/${node.id}`, "GET");
-      if (!uiSchema) return;
-      
-      setSelectedNode(uiSchema); 
-      setOpenRightSidebar(true); // open the right sidebar
-      console.log("Full node data:", uiSchema);
-
+      return await fn();
     } catch (err) {
-      console.error("Failed to fetch node UI schema:", err);
+      console.error(err);
+      return fallback;
     }
   };
 
+  /** Node/Edge helpers */
+  const createNode = (node: any) => safeApi(() => callApi(`/workflow-nodes/`, "POST", node));
+  const updateNode = (id: number, updates: any) =>
+    safeApi(() => callApi(`/workflow-nodes/${id}`, "PUT", updates));
+  const deleteNode = (id: number) => safeApi(() => callApi(`/workflow-nodes/${id}`, "DELETE"));
+  const createConnection = (conn: any) =>
+    safeApi(() => callApi(`/workflow-connections/`, "POST", conn));
+  const deleteConnection = (id: number) =>
+    safeApi(() => callApi(`/workflow-connections/${id}`, "DELETE"));
 
-  const handlePaneClick = () => {
-    setOpenRightSidebar(false); // close the right sidebar
-    setSelectedNode(null)
+  /** Fetch workflow nodes */
+  const fetchWorkflowNodes = useCallback(
+    async (workflowId: number) => {
+      const workflow = await safeApi(() => callApi(`/workflow/${workflowId}/full`, "GET"));
+      if (!workflow) return;
+
+      setWorkflowActive(workflow.is_active);
+      setNodes(
+        workflow.nodes.map((n: any) => ({
+          id: n.id.toString(),
+          type: n.node_category,
+          position: { x: n.position_x, y: n.position_y },
+          data: { content: n.name, customConfig: n.custom_config, actualType: n.node_category },
+        }))
+      );
+      setEdges(
+        workflow.connections.map((c: any) => ({
+          id: c.id,
+          source: c.from_step_id.toString(),
+          target: c.to_step_id.toString(),
+          type: "simplebezier",
+          animated: true,
+        }))
+      );
+    },
+    [callApi, setNodes, setEdges]
+  );
+
+  /** Node/Edge handlers */
+  const handleNodeClick = async (_: React.MouseEvent, node: WorkflowNodeType) => {
+    const uiSchema = await safeApi(() => callApi(`/workflow-nodes/ui-schema/${node.id}`, "GET"));
+    if (!uiSchema) return;
+    setSelectedNode(uiSchema);
+    setOpenRightSidebar(true);
   };
 
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+  const handlePaneClick = () => {
+    setOpenRightSidebar(false);
+    setSelectedNode(null);
   };
 
   const handleDrop = async (event: React.DragEvent) => {
     event.preventDefault();
-    if (!reactFlowWrapper.current) return;
+    if (!reactFlowWrapper.current || !selectedWorkflowId) return;
 
-    const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+    const bounds = reactFlowWrapper.current.getBoundingClientRect();
     const nodeData = event.dataTransfer.getData("application/reactflow");
     if (!nodeData) return;
+    console.log(nodeData)
+    const { id, category, title } = JSON.parse(nodeData);
+    const position = { x: (event.clientX - bounds.left - viewport.x) / viewport.zoom, y: (event.clientY - bounds.top - viewport.y) / viewport.zoom };
 
-    const { id: nodeId, category: actualTitle } = JSON.parse(nodeData);
+    const created = await createNode({
+      workflow_id: selectedWorkflowId,
+      node_id: id,
+      name: title,
+      position_x: position.x,
+      position_y: position.y,
+    });
 
-    const position = {
-      x: (event.clientX - reactFlowBounds.left - viewport.x) / viewport.zoom,
-      y: (event.clientY - reactFlowBounds.top - viewport.y) / viewport.zoom,
-    };
-
-    try {
-      const createdNode = await createWorkflowNode({
-        workflow_id: 1,
-        node_id: nodeId,
-        name: "Send Welcome Email",
-        position_x: position.x,
-        position_y: position.y
-      });
-
-      if (createdNode && createdNode.id) {
-        const newNode: WorkflowNodeType = {
-          id: createdNode.id.toString(),
-          type: "MultiplyNode", // always use BaseHandle mapping
-          position: { x: createdNode.position_x, y: createdNode.position_y },
-          data: {
-            label: createdNode.name,
-            customConfig: createdNode.custom_config,
-            actualType: actualTitle, // store the real node type here
-          },
-        };
-
-        setNodes((nds) => [...nds, newNode]);
-        console.log("Node successfully added:", newNode);
-      }
-    } catch (error) {
-      console.error("Error creating node:", error);
-    }
-  };
-
-  const toggleWorkflowActive = async () => {
-    try {
-      const newStatus = !workflowActive;
-      setWorkflowActive(newStatus); // instant UI update
-      console.log(newStatus)
-      await callApi(`/workflow/1`, "PUT", { is_active: newStatus });
-      console.log(`Workflow active state updated to: ${newStatus}`);
-    } catch (err) {
-      console.error("Failed to toggle workflow active state:", err);
-    }
-  };
-
-  // Fetch workflow nodes from backend
-  const fetchWorkflowNodes = async (workflowId: number) => {
-    try {
-      const workflow = await callApi(`/workflow/${workflowId}/full`, "GET");
-      if (!workflow) return;
-      console.log(workflow)
-
-      setWorkflowActive(workflow.is_active);
-
-      const mappedNodes = workflow.nodes.map((node: any) => ({
-        id: node.id.toString(),
-        type: "MultiplyNode", // always use BaseHandleDemo
-        position: { x: node.position_x, y: node.position_y },
-        data: {
-          content: node.name,            // main label
-          customConfig: node.custom_config, 
-          actualType: node.node_category,    // pass backend type here
+    if (created?.id) {
+      setNodes((nds) => [
+        ...nds,
+        {
+          id: created.id.toString(),
+          type: created.node_category,
+          position: { x: created.position_x, y: created.position_y },
+          data: { label: created.name, customConfig: created.custom_config, actualType: category },
         },
-      }));
-
-      const mappedEdges = workflow.connections.map((conn: any) => ({
-        id: conn.id,
-        source: conn.from_step_id.toString(),
-        target: conn.to_step_id.toString(),
-        type: "simplebezier",
-        animated: true,
-      }));
-
-      setNodes(mappedNodes);
-      setEdges(mappedEdges);
-    } catch (err) {
-      console.error("Failed to fetch workflow nodes:", err);
-    }
-  };
-
-  // Update workflow node backend safely
-  const updateWorkflowNode = async (
-    workflowNodeId: number,
-    updates: Partial<{ name: string; position_x: number; position_y: number; custom_config: Record<string, any> }>
-  ) => {
-    try {
-      await callApi(`/workflow-nodes/${workflowNodeId}`, "PUT", updates);
-    } catch (err) {
-      console.error("Failed to update workflow node:", err);
-    }
-  };
-
-  const createWorkflowNode = async (node: {
-    workflow_id: number;
-    node_id: number;
-    name: string;
-    position_x: number;
-    position_y: number;
-  }) => {
-    try {
-      const createdNode = await callApi(`/workflow-nodes/`, "POST", node);
-      return createdNode;
-    } catch (err) {
-      console.error("Failed to create workflow node:", err);
-      return null;
-    }
-  };
-
-  const createWorkflowConnection = async (connection: {
-    workflow_id: number;
-    from_step_id: number;
-    to_step_id: number;
-    condition: string | null;
-  }) => {
-    try {
-      const createdConnection = await callApi(`/workflow-connections/`, "POST", connection);
-      return createdConnection;
-    } catch (err) {
-      console.error("Failed to create workflow connection:", err);
-      return null;
+      ]);
     }
   };
 
   const handleConnect = async (params: any) => {
-    // 0️⃣ Check for duplicates first
-    const duplicate = edges.find(
-      (edge) =>
-        edge.source === params.source && edge.target === params.target
-    );
+    if (edges.some((e) => e.source === params.source && e.target === params.target)) return;
 
-    if (duplicate) {
-      console.warn("Connection already exists, skipping creation.");
-      return;
-    }
+    const created = await createConnection({
+      workflow_id: selectedWorkflowId,
+      from_step_id: parseInt(params.source),
+      to_step_id: parseInt(params.target),
+      condition: null,
+    });
+    if (!created?.id) return;
 
-    try {
-      // 1️⃣ Create the connection in the backend first
-      const createdConnection = await createWorkflowConnection({
-        workflow_id: 1, // fixed for now
-        from_step_id: parseInt(params.source),
-        to_step_id: parseInt(params.target),
-        condition: null,
-      });
-
-      // 2️⃣ Validate backend response
-      if (!createdConnection || !createdConnection.id) {
-        console.error("Backend returned invalid data, edge not added.");
-        return;
-      }
-
-      // 3️⃣ If successful, update UI
-      const newEdge: WorkflowEdgeType = {
-        id: createdConnection.id, // React Flow edge ID
-        source: params.source,
-        target: params.target,
-        type: "simplebezier",
-        animated: true,
-      };
-
-      setEdges((eds) => [...eds, newEdge]);
-      console.log("Connection successfully saved:", createdConnection);
-
-    } catch (error) {
-      console.error("Failed to create connection:", error);
-    }
-  };
-
-  const deleteWorkflowNode = async (nodeId: number) => {
-    try {
-      // Step 1: Delete the node
-      await callApi(`/workflow-nodes/${nodeId}`, "DELETE");
-      console.log(`Node ${nodeId} deleted successfully`);
-    } catch (err) {
-      console.error(`Failed to delete node ${nodeId}:`, err);
-      throw err; // bubble up error so we don't remove it from UI incorrectly
-    }
+    setEdges((eds) => [...eds, { ...params, id: created.id, type: "simplebezier", animated: true }]);
   };
 
   const handleNodesDelete = async (deletedNodes: WorkflowNodeType[]) => {
     for (const node of deletedNodes) {
-      const relatedEdges = edges.filter(
-        (edge) => edge.source === node.id || edge.target === node.id
-      );
-
-      // Delete all related connections
-      for (const edge of relatedEdges) {
-        await deleteWorkflowConnection(Number(edge.id)); 
-      }
-
-      // Delete the node itself
-      await deleteWorkflowNode(parseInt(node.id));
+      const relatedEdges = edges.filter((e) => e.source === node.id || e.target === node.id);
+      await Promise.all(relatedEdges.map((e) => deleteConnection(Number(e.id))));
+      await deleteNode(Number(node.id));
     }
-
-    // Update UI locally
     setNodes((nds) => nds.filter((n) => !deletedNodes.some((dn) => dn.id === n.id)));
-    setEdges((eds) =>
-      eds.filter(
-        (edge) =>
-          !deletedNodes.some((node) => edge.source === node.id || edge.target === node.id)
-      )
-    );
-  };
-
-  const deleteWorkflowConnection = async (connectionId: number) => {
-    try {
-      await callApi(`/workflow-connections/${connectionId}`, "DELETE");
-      console.log(`Connection ${connectionId} deleted successfully`);
-    } catch (err) {
-      console.error(`Failed to delete connection ${connectionId}:`, err);
-    }
+    setEdges((eds) => eds.filter((e) => !deletedNodes.some((dn) => e.source === dn.id || e.target === dn.id)));
   };
 
   const handleEdgesDelete = async (deletedEdges: WorkflowEdgeType[]) => {
-    console.log(deletedEdges)
-    for (const edge of deletedEdges) {
-      try {
-        // Use backend ID if available, fallback to parsing
-        await deleteWorkflowConnection(edge.backendId || edge.id);
-      } catch (err) {
-        console.error(`Failed to delete connection for edge ${edge.id}:`, err);
-      }
-    }
-
-    // Remove from local state
+    await Promise.all(deletedEdges.map((e) => deleteConnection(e.backendId || e.id)));
     setEdges((eds) => eds.filter((e) => !deletedEdges.some((de) => de.id === e.id)));
   };
 
-  // Handle node drag stop
   const handleNodeDragStop = (_: any, node: any) => {
-    setNodes((nds) =>
-      nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
-    );
-    
-    updateWorkflowNode(node.id, {
-      position_x: node.position.x,
-      position_y: node.position.y,
-    });
+    setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n)));
+    updateNode(node.id, { position_x: node.position.x, position_y: node.position.y });
   };
 
+  const toggleWorkflowActive = async () => {
+    const newStatus = !workflowActive;
+    setWorkflowActive(newStatus);
+    console.log(`/workflow/${selectedWorkflowId}`)
+    await safeApi(() => callApi(`/workflow/${selectedWorkflowId}`, "PUT", { is_active: newStatus }));
+  };
+
+  /** Effect: fetch workflow whenever selection changes */
   useEffect(() => {
-    fetchWorkflowNodes(1);
-  }, []);
+    if (selectedWorkflowId) fetchWorkflowNodes(selectedWorkflowId);
+  }, [selectedWorkflowId]);
 
   return (
-  <div
-    className="w-full h-full"
-    ref={reactFlowWrapper}
-    onDragOver={handleDragOver}
-    onDrop={handleDrop}
-  >
-    <WorkflowComponent
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={nodeTypes}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={handleConnect}
-      onNodesDelete={handleNodesDelete}
-      onEdgesDelete={handleEdgesDelete}
-      onInit={(instance) => setRfInstance(instance)}
-      onViewportChange={(v) => setViewport(v)}
-      onNodeDragStop={handleNodeDragStop}
-      onNodeClick={handleNodeClick}
-      onPaneClick={handlePaneClick} 
-      workflowActive={workflowActive}
-      setWorkflowActive={toggleWorkflowActive}
-    />
-  </div>
+    <div className="w-full h-full" ref={reactFlowWrapper} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
+      <WorkflowComponent
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={handleConnect}
+        onNodesDelete={handleNodesDelete}
+        onEdgesDelete={handleEdgesDelete}
+        onInit={setRfInstance}
+        onViewportChange={setViewport}
+        onNodeDragStop={handleNodeDragStop}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
+        workflowActive={workflowActive}
+        setWorkflowActive={toggleWorkflowActive}
+      />
+    </div>
   );
 };
 

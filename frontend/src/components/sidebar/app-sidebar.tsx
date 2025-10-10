@@ -23,6 +23,7 @@ import {
 } from "../ui/dropdown-menu";
 
 import { ChevronDown, ChevronUp, User2 } from "lucide-react";
+import { useWorkflow } from "@/context/WorkflowContext";
 
 interface Node {
   id: number;
@@ -46,6 +47,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ nodes = [], workflows = [] }: AppSidebarProps) {
   const { logout } = useAuth();
+  const { selectedWorkflowId, setSelectedWorkflowId } = useWorkflow();
 
   const onLogout = () => logout();
 
@@ -62,16 +64,18 @@ export function AppSidebar({ nodes = [], workflows = [] }: AppSidebarProps) {
     event.dataTransfer.effectAllowed = "move";
   };
 
+  const selectedWorkflow = workflows.find((wf) => wf.id === selectedWorkflowId);
+
   return (
     <Sidebar>
-      <SidebarHeader>
+            <SidebarHeader>
         {/* Workflows dropdown in header */}
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
-                  Workflows
+                  {selectedWorkflow ? selectedWorkflow.name : "Workflows"}
                   <ChevronDown className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -80,7 +84,10 @@ export function AppSidebar({ nodes = [], workflows = [] }: AppSidebarProps) {
                   <DropdownMenuItem disabled>No workflows found</DropdownMenuItem>
                 ) : (
                   workflows.map((wf) => (
-                    <DropdownMenuItem key={wf.id}>
+                    <DropdownMenuItem 
+                      key={wf.id} 
+                      onClick={() => setSelectedWorkflowId(wf.id)}
+                    >
                       <span>{wf.name}</span>
                     </DropdownMenuItem>
                   ))

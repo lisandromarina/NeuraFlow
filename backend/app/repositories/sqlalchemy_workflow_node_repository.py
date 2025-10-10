@@ -51,7 +51,16 @@ class SqlAlchemyWorkflowNodeRepository:
         self.session.add(node_db)
         self.session.commit()
         self.session.refresh(node_db)
-        return WorkflowNodeSchema.from_orm(node_db)
+
+        # Fetch related Node info
+        node_info = self.session.query(Node).get(node_db.node_id)
+
+        node_schema = WorkflowNodeSchema.from_orm(node_db)
+        if node_info:
+            node_schema.node_type = node_info.type
+            node_schema.node_category = node_info.category
+
+        return node_schema
 
     def bulk_add(self, workflow_nodes: List[WorkflowNodeSchema]) -> List[WorkflowNodeSchema]:
         nodes_db = [WorkflowNodeDB(**node.dict()) for node in workflow_nodes]
