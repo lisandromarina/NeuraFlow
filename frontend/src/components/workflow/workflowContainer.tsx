@@ -184,14 +184,21 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
     await safeApi(() => callApi(`/workflow/${selectedWorkflowId}`, "PUT", { is_active: newStatus }));
   };
 
-  /** Effect: fetch workflow whenever selection changes */
   useEffect(() => {
-    if (selectedWorkflowId) fetchWorkflowNodes(selectedWorkflowId);
+    if (!selectedWorkflowId) return;
+
+    // Reset nodes and edges immediately so ReactFlow shows empty state
+    setNodes([]);
+    setEdges([]);
+
+    // Fetch workflow data asynchronously
+    fetchWorkflowNodes(selectedWorkflowId);
   }, [selectedWorkflowId]);
 
   return (
     <div className="w-full h-full" ref={reactFlowWrapper} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
       <WorkflowComponent
+        selectedWorkflowId={selectedWorkflowId}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

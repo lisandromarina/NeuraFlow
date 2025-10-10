@@ -9,6 +9,7 @@ export interface WorkflowNodeType extends Node {
 }
 
 interface WorkflowComponentProps {
+  selectedWorkflowId: string | number | null;
   nodes: any[];
   edges: any[];
   nodeTypes: NodeTypes;
@@ -27,6 +28,7 @@ interface WorkflowComponentProps {
 }
 
 const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
+  selectedWorkflowId,
   nodes,
   edges,
   nodeTypes,
@@ -47,6 +49,7 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   return (
     <div className="w-full h-full">
       <ReactFlow
+        key={selectedWorkflowId} 
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
