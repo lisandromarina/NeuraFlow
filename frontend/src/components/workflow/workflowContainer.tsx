@@ -2,16 +2,17 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { useNodesState, useEdgesState } from "@xyflow/react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
-import PlaceholderNodeDemo from "../placeholderdemo";
-import BaseHandle from "../base-handler-demo";
+import PlaceholderNodeDemo from "../nodes/placeholderdemo";
+import BaseHandle from "../nodes/base-handler-demo";
 import { useApi } from "../../api/useApi";
 import { useWorkflow } from "@/context/WorkflowContext";
+import TriggerNode from "../nodes/trigger-node";
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
   MultiplyNode: BaseHandle,
   HttpNode: BaseHandle,
-  SchedulerNode: BaseHandle,
+  SchedulerService: TriggerNode,
 };
 
 interface WorkflowContainerProps {

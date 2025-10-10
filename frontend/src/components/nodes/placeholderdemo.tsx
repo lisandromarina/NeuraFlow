@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { PlaceholderNode } from "@/components/placeholder-node";
+import { PlaceholderNode } from "@/components/nodes/placeholder-node";
  
 const PlaceholderNodeDemo = memo(() => {
   return (

@@ -1,8 +1,8 @@
 import React, { memo } from "react";
 import { Position } from "@xyflow/react";
 
-import { BaseHandle } from "@/components/base-handle";
-import { BaseNode, BaseNodeContent } from "@/components/base-node";
+import { BaseHandle } from "@/components/nodes/base-handle";
+import { BaseNode, BaseNodeContent } from "@/components/nodes/base-node";
 
 interface BaseHandleDemoProps {
   data: {
