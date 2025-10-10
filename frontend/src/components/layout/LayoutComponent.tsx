@@ -1,4 +1,4 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../sidebar/app-sidebar";
 import Workflow from "../workflow";
 import { RightAppSidebar } from "../sidebar/right-app-sidebar";
@@ -40,6 +40,7 @@ export default function LayoutComponent({
       <SidebarProvider className="bg-background">
         <AppSidebar nodes={nodes} workflows={workflows} />
         <main className="w-full">
+          <SidebarTrigger className="text-secondary-foreground"/>
           <Workflow
             setOpenRightSidebar={setIsRightSidebarOpen}
             setSelectedNode={setSelectedNode}

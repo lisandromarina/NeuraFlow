@@ -68,7 +68,7 @@ export function AppSidebar({ nodes = [], workflows = [] }: AppSidebarProps) {
 
   return (
     <Sidebar>
-            <SidebarHeader>
+      <SidebarHeader>
         {/* Workflows dropdown in header */}
         <SidebarMenu>
           <SidebarMenuItem>
