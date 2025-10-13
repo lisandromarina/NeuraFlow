@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from .node_factory import NodeFactory
 from models.db_models.workflow_nodes import WorkflowNode
 from models.db_models.workflow_connections_db import WorkflowConnection
-import nodes
 
 # Thread-safe logger
 def log(msg: str, indent_level=0):
@@ -17,10 +16,11 @@ def log(msg: str, indent_level=0):
 
 
 class WorkflowExecutor:
+    TRIGGER_TYPES = {"trigger", "scheduler", "webhook"}
+
     def __init__(self, db: Session, max_workers=8):
         self.db = db
         self.executor_pool = ThreadPoolExecutor(max_workers=max_workers)
-        self.thread_local = threading.local()  # Optional: per-thread indentation
 
     def execute_workflow(self, workflow_id, context=None):
         context = context or {}
@@ -34,10 +34,8 @@ class WorkflowExecutor:
         log(f"Loaded nodes: {[node.id for node in nodes]}")
         log(f"Loaded connections: [{', '.join(f'{c.from_step_id}->{c.to_step_id}' for c in connections)}]")
 
-        # Build node map
+        # Build node and connection maps
         node_map = {node.id: node for node in nodes}
-
-        # Build connection map
         connection_map = {}
         for conn in connections:
             connection_map.setdefault(conn.from_step_id, []).append(conn)
@@ -47,8 +45,8 @@ class WorkflowExecutor:
             log(f"  Node {node_id} -> {[c.to_step_id for c in conns]}")
 
         # Identify start nodes
-        target_node_ids = {conn.to_step_id for conn in connections}
-        start_nodes = [node for node in nodes if node.id not in target_node_ids]
+        target_ids = {conn.to_step_id for conn in connections}
+        start_nodes = [node for node in nodes if node.id not in target_ids]
 
         if not start_nodes:
             raise ValueError("No starting node found (all nodes are targeted)")
@@ -58,7 +56,7 @@ class WorkflowExecutor:
         # Submit start nodes
         futures = [
             self.executor_pool.submit(
-                self.run_node_recursive_safe,
+                self._run_node,
                 node,
                 self._safe_copy_context(context),
                 node_map,
@@ -68,125 +66,84 @@ class WorkflowExecutor:
             for node in start_nodes
         ]
 
-        # Wait for all start nodes to finish
         wait(futures)
         log("=== Workflow Execution Completed ===")
 
-    def run_node_recursive_safe(self, node, context, node_map, connection_map, indent_level):
-        indent = indent_level
-        log(f"--- Running node {node.id} of category {node.node.category} ---", indent)
-        log(f"Node config: custom={node.custom_config}", indent)
+    def _run_node(self, node, context, node_map, connection_map, indent_level):
+        log(f"--- Running node {node.id} ({node.node.category}) ---", indent_level)
+        log(f"Node config: {node.custom_config}", indent_level)
 
-        # Detect trigger-type node
-        TRIGGER_TYPES = {"trigger", "scheduler", "webhook"}
-        if node.node.type.lower() in TRIGGER_TYPES:
-            log(f"Skipping trigger node {node.id} execution — passing context to downstream nodes.", indent)
-            
-            # Schedule downstream nodes immediately
-            children = connection_map.get(node.id, [])
-            downstream_futures = []
-            for conn in children:
-                next_node = node_map[conn.to_step_id]
-
-                # Build child context without node outputs
-                child_context = {k: v for k, v in context.items() if not k.startswith("node_")}
-                log(f"Submitting downstream node {next_node.id} from trigger node {node.id}", indent + 1)
-                fut = self.executor_pool.submit(
-                    self.run_node_recursive_safe,
-                    next_node,
-                    child_context,
-                    node_map,
-                    connection_map,
-                    indent + 1
-                )
-                downstream_futures.append(fut)
-
-            if downstream_futures:
-                wait(downstream_futures)
-                log(f"All downstream nodes for trigger node {node.id} completed.", indent)
-            return  # Do not execute the trigger node itself
-
-        # Resolve config for normal action nodes
-        raw_config = node.custom_config or {}
-        config = resolve_config(raw_config, context)
-        log(f"Resolved config for node {node.id}: {config}", indent)
-
-        # Fetch executor class
-        executor_cls = NodeFactory.get_executor(node.node.category)
-        log(f"GOT EXECUTOR")
-        try:
-            # Execute the node
-            result = executor_cls.run(config, context)
-            log(f"RESULT {result}")
-        except Exception as e:
-            log(f"ERROR executing node {node.id}: {e}", indent)
+        # Skip trigger nodes
+        if node.node.type.lower() in self.TRIGGER_TYPES:
+            log(f"Skipping trigger node {node.id} — passing context to downstream nodes.", indent_level)
+            self._submit_downstream(node, context, node_map, connection_map, indent_level)
             return
 
-        # Save node output
-        context[f"node_{node.id}_output"] = result
-        log(f"Node {node.id} finished, result: {result}", indent)
+        # Resolve config and execute node
+        config = resolve_config(node.custom_config or {}, context)
+        log(f"Resolved config: {config}", indent_level)
 
-        # Handle downstream nodes
+        executor_cls = NodeFactory.get_executor(node.node.category)
+        log("GOT EXECUTOR", indent_level)
+        try:
+            result = executor_cls.run(config, context)
+            log(f"RESULT: {result}", indent_level)
+        except Exception as e:
+            log(f"ERROR executing node {node.id}: {e}", indent_level)
+            return
+
+        context[f"node_{node.id}_output"] = result
+        self._submit_downstream(node, context, node_map, connection_map, indent_level, parent_result=result)
+
+    def _submit_downstream(self, node, context, node_map, connection_map, indent_level, parent_result=None):
         children = connection_map.get(node.id, [])
-        if children:
-            log(f"Node {node.id} has downstream nodes: {[c.to_step_id for c in children]}", indent)
-        
-        downstream_futures = []
+        if not children:
+            log(f"Node {node.id} has no downstream nodes.", indent_level)
+            return
+
+        log(f"Node {node.id} has downstream nodes: {[c.to_step_id for c in children]}", indent_level)
+        futures = []
         for conn in children:
             next_node = node_map[conn.to_step_id]
-
-            # Build child context (exclude node outputs)
             child_context = {k: v for k, v in context.items() if not k.startswith("node_")}
-            child_context["parent_result"] = result
+            if parent_result is not None:
+                child_context["parent_result"] = parent_result
 
-            log(f"Submitting downstream node {next_node.id} from node {node.id} (condition: {conn.condition})", indent + 1)
+            log(f"Submitting downstream node {next_node.id} from node {node.id} (condition: {conn.condition})", indent_level + 1)
             fut = self.executor_pool.submit(
-                self.run_node_recursive_safe,
+                self._run_node,
                 next_node,
                 child_context,
                 node_map,
                 connection_map,
-                indent + 1
+                indent_level + 1
             )
-            downstream_futures.append(fut)
+            futures.append(fut)
 
-        if downstream_futures:
-            wait(downstream_futures)
-            log(f"All downstream nodes for node {node.id} completed.", indent)
-        else:
-            log(f"Node {node.id} has no downstream nodes.", indent)
-
+        if futures:
+            wait(futures)
+            log(f"All downstream nodes for node {node.id} completed.", indent_level)
 
     def _safe_copy_context(self, context):
-        """
-        Make a safe copy of context without deep-copying unpicklable objects like DB sessions or service instances.
-        """
         safe_context = {}
-
         for k, v in context.items():
             if k == "services":
-                # keep the reference, do NOT deepcopy
-                safe_context[k] = v
+                safe_context[k] = v  # do not deepcopy services
             else:
                 try:
                     safe_context[k] = copy.deepcopy(v)
                 except Exception:
-                    # fallback if something else is not deepcopyable
                     safe_context[k] = v
-
         return safe_context
 
-def resolve_config(config, context):
-    """
-    Replace placeholders in config like {{ parent_result.value }}
-    """
-    resolved = {}
 
+def resolve_config(config, context):
+    resolved = {}
     for key, value in config.items():
         if isinstance(value, str):
             match = re.fullmatch(r"\{\{\s*(.*?)\s*\}\}", value)
             if match:
-                expr = match.group(1)  # e.g. "parent_result.value"
+                expr = match.group(1)
                 parts = expr.split(".")
                 current = context
                 try:
@@ -199,5 +156,4 @@ def resolve_config(config, context):
                 resolved[key] = value
         else:
             resolved[key] = value
-
     return resolved
