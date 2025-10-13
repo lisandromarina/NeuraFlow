@@ -1,5 +1,4 @@
-# models/db_models/user_db.py
-from sqlalchemy import Column, Integer, String, DateTime # type: ignore
+from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .base import Base
@@ -12,5 +11,14 @@ class UserDB(Base):
     password = Column(String, nullable=False)  # hashed password
     creation_date = Column(DateTime, default=datetime.utcnow)
 
-    workflows = relationship("WorkflowDB", back_populates="user", cascade="all, delete-orphan")
+    workflows = relationship(
+        "WorkflowDB",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
+    credentials = relationship(
+        "UserCredentialDB",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )

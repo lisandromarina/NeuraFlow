@@ -60,7 +60,7 @@ class WorkflowExecutor:
             self.executor_pool.submit(
                 self.run_node_recursive_safe,
                 node,
-                copy.deepcopy(context),
+                self._safe_copy_context(context),
                 node_map,
                 connection_map,
                 0
@@ -74,44 +74,72 @@ class WorkflowExecutor:
 
     def run_node_recursive_safe(self, node, context, node_map, connection_map, indent_level):
         indent = indent_level
-        log(f"--- Running node {node.id} of type {node.node.type} ---", indent)
+        log(f"--- Running node {node.id} of category {node.node.category} ---", indent)
         log(f"Node config: custom={node.custom_config}", indent)
 
-        # Resolve config
+        # Detect trigger-type node
+        TRIGGER_TYPES = {"trigger", "scheduler", "webhook"}
+        if node.node.type.lower() in TRIGGER_TYPES:
+            log(f"Skipping trigger node {node.id} execution — passing context to downstream nodes.", indent)
+            
+            # Schedule downstream nodes immediately
+            children = connection_map.get(node.id, [])
+            downstream_futures = []
+            for conn in children:
+                next_node = node_map[conn.to_step_id]
+
+                # Build child context without node outputs
+                child_context = {k: v for k, v in context.items() if not k.startswith("node_")}
+                log(f"Submitting downstream node {next_node.id} from trigger node {node.id}", indent + 1)
+                fut = self.executor_pool.submit(
+                    self.run_node_recursive_safe,
+                    next_node,
+                    child_context,
+                    node_map,
+                    connection_map,
+                    indent + 1
+                )
+                downstream_futures.append(fut)
+
+            if downstream_futures:
+                wait(downstream_futures)
+                log(f"All downstream nodes for trigger node {node.id} completed.", indent)
+            return  # Do not execute the trigger node itself
+
+        # Resolve config for normal action nodes
         raw_config = node.custom_config or {}
         config = resolve_config(raw_config, context)
         log(f"Resolved config for node {node.id}: {config}", indent)
 
         # Fetch executor class
-        executor_cls = NodeFactory.get_executor(node.node.type)
+        executor_cls = NodeFactory.get_executor(node.node.category)
         log(f"GOT EXECUTOR")
         try:
-            # Execute node
+            # Execute the node
             result = executor_cls.run(config, context)
             log(f"RESULT {result}")
         except Exception as e:
             log(f"ERROR executing node {node.id}: {e}", indent)
             return
 
-        log(f"Node {node.id} finished, result: {result}", indent)
+        # Save node output
         context[f"node_{node.id}_output"] = result
+        log(f"Node {node.id} finished, result: {result}", indent)
 
         # Handle downstream nodes
         children = connection_map.get(node.id, [])
         if children:
             log(f"Node {node.id} has downstream nodes: {[c.to_step_id for c in children]}", indent)
-
+        
         downstream_futures = []
         for conn in children:
             next_node = node_map[conn.to_step_id]
 
-            # Build child context
+            # Build child context (exclude node outputs)
             child_context = {k: v for k, v in context.items() if not k.startswith("node_")}
             child_context["parent_result"] = result
 
-            log(f"Submitting downstream node {next_node.id} from node {node.id} (condition: {conn.condition})",
-                indent + 1)
-
+            log(f"Submitting downstream node {next_node.id} from node {node.id} (condition: {conn.condition})", indent + 1)
             fut = self.executor_pool.submit(
                 self.run_node_recursive_safe,
                 next_node,
@@ -127,6 +155,26 @@ class WorkflowExecutor:
             log(f"All downstream nodes for node {node.id} completed.", indent)
         else:
             log(f"Node {node.id} has no downstream nodes.", indent)
+
+
+    def _safe_copy_context(self, context):
+        """
+        Make a safe copy of context without deep-copying unpicklable objects like DB sessions or service instances.
+        """
+        safe_context = {}
+
+        for k, v in context.items():
+            if k == "services":
+                # keep the reference, do NOT deepcopy
+                safe_context[k] = v
+            else:
+                try:
+                    safe_context[k] = copy.deepcopy(v)
+                except Exception:
+                    # fallback if something else is not deepcopyable
+                    safe_context[k] = v
+
+        return safe_context
 
 def resolve_config(config, context):
     """

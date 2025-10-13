@@ -12,7 +12,8 @@ const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
   MultiplyNode: BaseHandle,
   HttpNode: BaseHandle,
-  SchedulerService: TriggerNode,
+  SchedulerNode: TriggerNode,
+  GoogleSheetsNode: BaseHandle,
 };
 
 interface WorkflowContainerProps {

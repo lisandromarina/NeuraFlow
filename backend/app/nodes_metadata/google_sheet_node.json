@@ -1,0 +1,48 @@
+{
+  "name": "Google Sheets Node",
+  "type": "action",
+  "category": "GoogleSheetsNode",
+  "description": "Reads or writes data from/to a Google Sheet using stored Google OAuth credentials.",
+  "config_metadata": {
+    "inputs": [
+      {
+        "name": "spreadsheet_id",
+        "label": "Spreadsheet ID",
+        "type": "string",
+        "required": true,
+        "description": "The unique ID of the Google Sheets document."
+      },
+      {
+        "name": "range",
+        "label": "Range",
+        "type": "string",
+        "required": true,
+        "description": "The range in A1 notation, e.g., 'Sheet1!A1:C10'."
+      },
+      {
+        "name": "action",
+        "label": "Action",
+        "type": "select",
+        "required": true,
+        "default": "read",
+        "options": ["read", "write"],
+        "description": "Choose whether to read or write data."
+      },
+      {
+        "name": "values",
+        "label": "Values (for write)",
+        "type": "array",
+        "required": false,
+        "description": "List of lists representing the rows and columns to write, only required when action=write."
+      }
+    ],
+    "outputs": [
+      {
+        "name": "result",
+        "label": "Sheet Data or Write Response",
+        "type": "object",
+        "description": "For 'read' — returns sheet values; for 'write' — returns the API update response."
+      }
+    ]
+  }
+}

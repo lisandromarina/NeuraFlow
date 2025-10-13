@@ -5,6 +5,7 @@ from repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
+from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCredentialRepository
 from models.db_models.workflow_db import Base
 from redis import Redis # type: ignore
 import os
@@ -38,6 +39,10 @@ def get_workflow_node_repository(db = Depends(get_db_session)):
 
 def get_user_repository(db = Depends(get_db_session)):
     return SqlAlchemyUserRepository(db)
+
+def get_user_credential_repository(db=Depends(get_db_session)):
+    """Provides User Credential repository dependency"""
+    return SqlAlchemyUserCredentialRepository(db)
 
 def get_redis_client() -> Redis:
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")

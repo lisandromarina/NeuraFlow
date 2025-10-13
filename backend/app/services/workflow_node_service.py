@@ -71,13 +71,21 @@ class WorkflowNodeService:
         if not node:
             return None
 
+        workflow = self.workflow_repo.get_by_id(node.workflow_id)
+
         # Apply updates
         for field, value in update_data.dict(exclude_unset=True).items():
             setattr(node, field, value)
 
+        if workflow:
+            if node.custom_config is None:
+                node.custom_config = {}
+            else:
+                node.custom_config = dict(node.custom_config)  # ensure it's mutable
+            node.custom_config["user_id"] = workflow.user_id
+
         updated_node = self.workflow_node_repo.update(node)
         db_node = self.node_repo.get_node(node.node_id)
-        workflow = self.workflow_repo.get_by_id(node.workflow_id)
 
         # ✅ If workflow is active, notify scheduler
         if workflow and workflow.is_active and db_node.type == "trigger":
