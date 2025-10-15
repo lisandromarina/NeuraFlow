@@ -2,46 +2,142 @@
   "name": "Google Sheets Node",
   "type": "action",
   "category": "GoogleSheetsNode",
-  "description": "Reads or writes data from/to a Google Sheet using stored Google OAuth credentials.",
+  "description": "Performs Google Sheets operations such as creating, deleting, appending, updating, or retrieving rows and sheets.",
   "config_metadata": {
     "inputs": [
       {
-        "name": "spreadsheet_id",
-        "label": "Spreadsheet ID",
+        "name": "user_id",
+        "label": "User ID",
         "type": "string",
         "required": true,
-        "description": "The unique ID of the Google Sheets document."
+        "description": "The user ID linked to stored Google credentials."
+      },
+      {
+        "name": "operation",
+        "label": "Operation",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "label": "Create Spreadsheet", "value": "create_spreadsheet" },
+          { "label": "Delete Spreadsheet", "value": "delete_spreadsheet" },
+          { "label": "Create Sheet", "value": "create_sheet" },
+          { "label": "Delete Sheet", "value": "delete_sheet" },
+          { "label": "Clear Sheet", "value": "clear_sheet" },
+          { "label": "Get Rows", "value": "get_rows" },
+          { "label": "Append Row", "value": "append_row" },
+          { "label": "Update Row", "value": "update_row" },
+          { "label": "Append or Update", "value": "append_or_update" },
+          { "label": "Delete Rows or Columns", "value": "delete_rows_or_columns" }
+        ]
+      },
+
+      {
+        "name": "spreadsheet_id",
+        "label": "Spreadsheet ID or URL",
+        "type": "string",
+        "required": true,
+        "description": "The target spreadsheet ID or URL.",
+        "show_if": {
+          "operation": [
+            "delete_spreadsheet",
+            "create_sheet",
+            "delete_sheet",
+            "clear_sheet",
+            "get_rows",
+            "append_row",
+            "update_row",
+            "append_or_update",
+            "delete_rows_or_columns"
+          ]
+        }
+      },
+      {
+        "name": "title",
+        "label": "Spreadsheet Title",
+        "type": "string",
+        "default": "New Spreadsheet",
+        "show_if": { "operation": ["create_spreadsheet"] }
+      },
+      {
+        "name": "sheet_title",
+        "label": "Sheet Title",
+        "type": "string",
+        "default": "Sheet1",
+        "show_if": { "operation": ["create_sheet"] }
+      },
+      {
+        "name": "sheet_id",
+        "label": "Sheet ID",
+        "type": "number",
+        "show_if": { "operation": ["delete_sheet", "delete_rows_or_columns"] }
       },
       {
         "name": "range",
-        "label": "Range",
+        "label": "Range (A1 notation)",
         "type": "string",
-        "required": true,
-        "description": "The range in A1 notation, e.g., 'Sheet1!A1:C10'."
-      },
-      {
-        "name": "action",
-        "label": "Action",
-        "type": "select",
-        "required": true,
-        "default": "read",
-        "options": ["read", "write"],
-        "description": "Choose whether to read or write data."
+        "placeholder": "Sheet1!A1:C10",
+        "show_if": {
+          "operation": [
+            "clear_sheet",
+            "get_rows",
+            "append_row",
+            "update_row",
+            "append_or_update"
+          ]
+        }
       },
       {
         "name": "values",
-        "label": "Values (for write)",
-        "type": "array",
-        "required": false,
-        "description": "List of lists representing the rows and columns to write, only required when action=write."
+        "label": "Values (2D Array)",
+        "type": "json",
+        "placeholder": "[['Name', 'Age'], ['John', 30]]",
+        "show_if": {
+          "operation": [
+            "append_row",
+            "update_row",
+            "append_or_update"
+          ]
+        }
+      },
+      {
+        "name": "key_column",
+        "label": "Key Column Index",
+        "type": "number",
+        "default": 0,
+        "description": "Used for matching rows during append_or_update.",
+        "show_if": { "operation": ["append_or_update"] }
+      },
+      {
+        "name": "dimension",
+        "label": "Dimension (ROWS or COLUMNS)",
+        "type": "select",
+        "options": [
+          { "label": "Rows", "value": "ROWS" },
+          { "label": "Columns", "value": "COLUMNS" }
+        ],
+        "default": "ROWS",
+        "show_if": { "operation": ["delete_rows_or_columns"] }
+      },
+      {
+        "name": "start_index",
+        "label": "Start Index (0-based)",
+        "type": "number",
+        "required": true,
+        "show_if": { "operation": ["delete_rows_or_columns"] }
+      },
+      {
+        "name": "end_index",
+        "label": "End Index (exclusive)",
+        "type": "number",
+        "required": true,
+        "show_if": { "operation": ["delete_rows_or_columns"] }
       }
     ],
     "outputs": [
       {
-        "name": "result",
-        "label": "Sheet Data or Write Response",
-        "type": "object",
-        "description": "For 'read' — returns sheet values; for 'write' — returns the API update response."
+        "name": "response",
+        "label": "Google Sheets API Response",
+        "type": "json"
       }
     ]
   }
