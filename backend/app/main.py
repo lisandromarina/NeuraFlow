@@ -7,7 +7,6 @@ from api.v1 import workflow_node_router
 from api.v1 import workflow_connection_routes
 from api.v1 import google_routes
 from dotenv import load_dotenv # type: ignore
-import os
 import nodes  # SUPER NEEDED, IMPORTS AND REGISTER ALL THE NODES
 
 app = FastAPI()

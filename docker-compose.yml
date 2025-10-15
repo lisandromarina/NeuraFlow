@@ -43,6 +43,8 @@ services:
       - app_network
     environment:
       - REDIS_URL=redis://redis_db:6379/0
+    env_file:
+      - ./backend/app/.env
     depends_on:
       - redis
       - postgres

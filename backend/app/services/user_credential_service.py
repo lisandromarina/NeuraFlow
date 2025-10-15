@@ -1,4 +1,5 @@
 from typing import List, Optional
+from utils.token_security import decrypt_credentials
 from models.db_models.user_credentials_db import UserCredentialDB
 from models.schemas.user_credential import UserCredentialCreate, UserCredentialUpdate
 from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCredentialRepository
@@ -30,22 +31,25 @@ class UserCredentialService:
 
     def get_credentials(self, user_id: int) -> Optional[dict]:
         """
-        Fetch the credentials for a given user_id.
+        Fetch and decrypt the credentials for a given user_id.
         Returns the latest credential as a dictionary suitable for google.oauth2.credentials.Credentials.
         """
         creds_list = self.credential_repo.list_by_user(user_id)
         if not creds_list:
             return None
 
-        # Pick the first / latest credential (you can implement ordering if needed)
+        # Pick the first (or latest) credential
         cred = creds_list[0]
 
+        # Decrypt stored credentials JSON
+        decrypted_creds = decrypt_credentials(cred.credentials)
+        # Return in a standard format expected by your Google connectors
         return {
-            "access_token": cred.access_token,
-            "refresh_token": cred.refresh_token,
-            "scope": cred.scope,
-            "token_type": cred.token_type,
-            "client_id": cred.client_id,
-            "client_secret": cred.client_secret,
-            "expires_in": cred.expires_in,
+            "access_token": decrypted_creds.get("access_token"),
+            "refresh_token": decrypted_creds.get("refresh_token"),
+            "scope": decrypted_creds.get("scope"),
+            "token_type": decrypted_creds.get("token_type"),
+            "client_id": decrypted_creds.get("client_id"),
+            "client_secret": decrypted_creds.get("client_secret"),
+            "expires_in": decrypted_creds.get("expires_in"),
         }

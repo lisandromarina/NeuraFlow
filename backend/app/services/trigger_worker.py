@@ -1,3 +1,4 @@
+from core.logger import Logger
 from core.executor import WorkflowExecutor
 import redis, json, os
 
@@ -25,7 +26,8 @@ class TriggerWorker:
                 raise
 
     def listen(self):
-        print(f"[TriggerWorker] Listening as {self.consumer_name}...")
+        logger: Logger = self.services.get("logger")
+        logger.log(f"Listening as {self.consumer_name}...")
         while True:
             msgs = self.r.xreadgroup(
                 groupname=self.group_name,
@@ -36,7 +38,7 @@ class TriggerWorker:
             )
 
             if not msgs:
-                print("[TriggerWorker] No messages yet...")
+                logger.log("No messages yet...")
                 continue
 
             for stream, entries in msgs:
@@ -45,13 +47,12 @@ class TriggerWorker:
                     context = json.loads(fields[b'context'])
 
                     # ✅ Inject shared services
-                    print(f"HERE", flush=True)
                     context["services"] = {**context.get("services", {}), **self.services}
 
                     try:
-                        print(f"[TriggerWorker] Executing workflow {workflow_id}", flush=True)
+                        logger.log(f"Executing workflow {workflow_id}")
                         self.executor.execute_workflow(workflow_id, context)
                         self.r.xack(self.stream_name, self.group_name, entry_id)
-                        print(f"[TriggerWorker] Workflow {workflow_id} done, acked {entry_id}")
+                        logger.log(f"Workflow {workflow_id} done, acked {entry_id}")
                     except Exception as e:
-                        print(f"[TriggerWorker] Workflow {workflow_id} failed: {e}")
+                        logger.log(f"Workflow {workflow_id} failed: {e}")

@@ -1,26 +1,18 @@
 import re
 import copy
-import datetime
-import threading
 from concurrent.futures import ThreadPoolExecutor, wait
-from sqlalchemy.orm import Session
+from core.logger import Logger
 from .node_factory import NodeFactory
 from models.db_models.workflow_nodes import WorkflowNode
 from models.db_models.workflow_connections_db import WorkflowConnection
 
-# Thread-safe logger
-def log(msg: str, indent_level=0):
-    indent = "  " * indent_level
-    thread_name = threading.current_thread().name
-    print(f"{datetime.datetime.now().isoformat()} [{thread_name}] {indent}{msg}")
-
-
 class WorkflowExecutor:
     TRIGGER_TYPES = {"trigger", "scheduler", "webhook"}
 
-    def __init__(self, db: Session, max_workers=8):
+    def __init__(self, db, max_workers=8, logger=None):
         self.db = db
         self.executor_pool = ThreadPoolExecutor(max_workers=max_workers)
+        self.logger = logger or Logger("[Executor]")
 
     def execute_workflow(self, workflow_id, context=None):
         context = context or {}
@@ -29,10 +21,10 @@ class WorkflowExecutor:
         nodes = self.db.query(WorkflowNode).filter_by(workflow_id=workflow_id).all()
         connections = self.db.query(WorkflowConnection).filter_by(workflow_id=workflow_id).all()
 
-        log("=== Workflow Execution Started ===")
-        log(f"Workflow ID: {workflow_id}")
-        log(f"Loaded nodes: {[node.id for node in nodes]}")
-        log(f"Loaded connections: [{', '.join(f'{c.from_step_id}->{c.to_step_id}' for c in connections)}]")
+        self.logger.log("=== Workflow Execution Started ===")
+        self.logger.log(f"Workflow ID: {workflow_id}")
+        self.logger.log(f"Loaded nodes: {[node.id for node in nodes]}")
+        self.logger.log(f"Loaded connections: [{', '.join(f'{c.from_step_id}->{c.to_step_id}' for c in connections)}]")
 
         # Build node and connection maps
         node_map = {node.id: node for node in nodes}
@@ -40,9 +32,9 @@ class WorkflowExecutor:
         for conn in connections:
             connection_map.setdefault(conn.from_step_id, []).append(conn)
 
-        log("Connection map:")
+        self.logger.log("Connection map:")
         for node_id, conns in connection_map.items():
-            log(f"  Node {node_id} -> {[c.to_step_id for c in conns]}")
+            self.logger.log(f"  Node {node_id} -> {[c.to_step_id for c in conns]}")
 
         # Identify start nodes
         target_ids = {conn.to_step_id for conn in connections}
@@ -51,7 +43,7 @@ class WorkflowExecutor:
         if not start_nodes:
             raise ValueError("No starting node found (all nodes are targeted)")
 
-        log(f"Start nodes: {[node.id for node in start_nodes]}")
+        self.logger.log(f"Start nodes: {[node.id for node in start_nodes]}")
 
         # Submit start nodes
         futures = [
@@ -67,29 +59,29 @@ class WorkflowExecutor:
         ]
 
         wait(futures)
-        log("=== Workflow Execution Completed ===")
+        self.logger.log("=== Workflow Execution Completed ===")
 
     def _run_node(self, node, context, node_map, connection_map, indent_level):
-        log(f"--- Running node {node.id} ({node.node.category}) ---", indent_level)
-        log(f"Node config: {node.custom_config}", indent_level)
+        self.logger.log(f"--- Running node {node.id} ({node.node.category}) ---", indent_level)
+        self.logger.log(f"Node config: {node.custom_config}", indent_level)
 
         # Skip trigger nodes
         if node.node.type.lower() in self.TRIGGER_TYPES:
-            log(f"Skipping trigger node {node.id} — passing context to downstream nodes.", indent_level)
+            self.logger.log(f"Skipping trigger node {node.id} — passing context to downstream nodes.", indent_level)
             self._submit_downstream(node, context, node_map, connection_map, indent_level)
             return
 
         # Resolve config and execute node
         config = resolve_config(node.custom_config or {}, context)
-        log(f"Resolved config: {config}", indent_level)
-
+        self.logger.log(f"Resolved config: {config}", indent_level)
+        self.logger.log("before")
         executor_cls = NodeFactory.get_executor(node.node.category)
-        log("GOT EXECUTOR", indent_level)
+        self.logger.log("GOT EXECUTOR", indent_level)
         try:
             result = executor_cls.run(config, context)
-            log(f"RESULT: {result}", indent_level)
+            self.logger.log(f"RESULT: {result}", indent_level)
         except Exception as e:
-            log(f"ERROR executing node {node.id}: {e}", indent_level)
+            self.logger.log(f"ERROR executing node {node.id}: {e}", indent_level)
             return
 
         context[f"node_{node.id}_output"] = result
@@ -98,10 +90,10 @@ class WorkflowExecutor:
     def _submit_downstream(self, node, context, node_map, connection_map, indent_level, parent_result=None):
         children = connection_map.get(node.id, [])
         if not children:
-            log(f"Node {node.id} has no downstream nodes.", indent_level)
+            self.logger.log(f"Node {node.id} has no downstream nodes.", indent_level)
             return
 
-        log(f"Node {node.id} has downstream nodes: {[c.to_step_id for c in children]}", indent_level)
+        self.logger.log(f"Node {node.id} has downstream nodes: {[c.to_step_id for c in children]}", indent_level)
         futures = []
         for conn in children:
             next_node = node_map[conn.to_step_id]
@@ -109,7 +101,7 @@ class WorkflowExecutor:
             if parent_result is not None:
                 child_context["parent_result"] = parent_result
 
-            log(f"Submitting downstream node {next_node.id} from node {node.id} (condition: {conn.condition})", indent_level + 1)
+            self.logger.log(f"Submitting downstream node {next_node.id} from node {node.id} (condition: {conn.condition})", indent_level + 1)
             fut = self.executor_pool.submit(
                 self._run_node,
                 next_node,
@@ -122,7 +114,7 @@ class WorkflowExecutor:
 
         if futures:
             wait(futures)
-            log(f"All downstream nodes for node {node.id} completed.", indent_level)
+            self.logger.log(f"All downstream nodes for node {node.id} completed.", indent_level)
 
     def _safe_copy_context(self, context):
         safe_context = {}
