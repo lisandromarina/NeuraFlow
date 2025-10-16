@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Field } from "../ui/fields";
 import { useApi } from "../../api/useApi";
+import { toast } from "sonner";
+import { Button } from "../ui/button";
 
 interface RightAppSidebarProps {
   node: any;
@@ -82,8 +84,10 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
 
       const body = { custom_config: bodyValues };
       const response = await callApi(`/workflow-nodes/${node.id}`, "PUT", body);
-      console.log("Saved node:", response);
+      toast.success("Saved node:", response)
+      console.log("Configuration Saved!");
     } catch (error) {
+      toast.error("Failed to save configuration");
       console.error("Failed to save node:", error);
     }
   };
@@ -91,7 +95,7 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
   // Group inputs if they have a "group" property, otherwise default group
   const groupedInputs: Record<string, any[]> = {};
   visibleInputs.forEach((input) => {
-    const group = input.group || "General";
+    const group = input.group || "";
     if (!groupedInputs[group]) groupedInputs[group] = [];
     groupedInputs[group].push(input);
   });
@@ -139,13 +143,9 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
                     </div>
                   </SidebarMenuItem>
                 )}
-
-                <button
-                  type="submit"
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Save
-                </button>
+                <Button type="submit">
+                    Save
+                </Button>
               </form>
             ) : (
               <SidebarMenuItem>

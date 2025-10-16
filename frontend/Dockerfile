@@ -3,12 +3,19 @@ FROM node:20
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+
+# Clean install
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 
-EXPOSE 5173
+# Ensure node_modules/.bin is in PATH
+ENV PATH=/app/node_modules/.bin:$PATH
 
+EXPOSE 5173
 ENV CHOKIDAR_USEPOLLING=true
-# Start Vite dev server
+
+# Force rebuild optional binaries
+RUN npm rebuild
+
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

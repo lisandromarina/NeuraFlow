@@ -19,7 +19,6 @@ class SchedulerRunner:
         self.pubsub.subscribe(WORKFLOW_EVENT_CHANNEL)
 
     def run_forever(self):
-        print("Hello", flush=True)
         print("[SchedulerRunner]  Scheduler running...")
         last_pubsub_check = time.time()
 

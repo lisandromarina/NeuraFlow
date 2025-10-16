@@ -41,11 +41,12 @@ class SchedulerService:
         self.register_schedule(schedule)
 
     def process_due_schedules(self):
-        now_ts = datetime.datetime.utcnow().timestamp()
+        now_ts = datetime.datetime.now(datetime.timezone.utc).timestamp()
         due = self.redis.zrangebyscore(WORKFLOW_SCHEDULES_ZSET, 0, now_ts)
 
         for raw in due:
-            data = json.loads(raw)
+            raw_str = raw.decode() if isinstance(raw, bytes) else raw
+            data = json.loads(raw_str)
             schedule = Schedule.from_dict(data)
 
             # Trigger workflow
@@ -53,22 +54,39 @@ class SchedulerService:
                 "workflow_id": schedule.workflow_id,
                 "context": json.dumps(schedule.context)
             })
-            print(f"[SchedulerService] 🔔 Triggered workflow {schedule.workflow_id}")
+            print(f"[SchedulerService] 🔔 Triggered workflow {schedule.workflow_id} (occurrence {schedule.occurrences + 1})")
 
-            # Update schedule
+            # Increment occurrences
             schedule.occurrences += 1
             stop = False
 
             if schedule.interval_seconds:
-                next_run = datetime.datetime.utcnow() + datetime.timedelta(seconds=schedule.interval_seconds)
+                # ✅ Use UTC-aware datetime
+                next_run = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=schedule.interval_seconds)
                 schedule.next_run = next_run
-                if schedule.until and next_run > datetime.datetime.fromisoformat(schedule.until):
-                    stop = True
+
+                # Handle 'until' safely
+                if schedule.until:
+                    try:
+                        until_dt = datetime.datetime.fromisoformat(schedule.until.replace("Z", "+00:00"))
+                        if next_run > until_dt:
+                            stop = True
+                    except Exception as e:
+                        print(f"[SchedulerService] ⚠️ Failed to parse 'until' ({schedule.until}): {e}")
+                        stop = True
+
                 if schedule.max_occurrences and schedule.occurrences >= schedule.max_occurrences:
                     stop = True
             else:
                 stop = True
 
-            self.redis.zrem(WORKFLOW_SCHEDULES_ZSET, raw)
+            # Remove old schedule entry first
+            self.redis.zrem(WORKFLOW_SCHEDULES_ZSET, raw_str)
+
             if not stop:
-                self.redis.zadd(WORKFLOW_SCHEDULES_ZSET, {json.dumps(schedule.to_dict()): schedule.next_run.timestamp()})
+                self.redis.zadd(
+                    WORKFLOW_SCHEDULES_ZSET,
+                    {json.dumps(schedule.to_dict()): schedule.next_run.timestamp()}
+                )
+            else:
+                print(f"[SchedulerService] 🏁 Schedule complete for workflow {schedule.workflow_id}")

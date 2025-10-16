@@ -7,6 +7,7 @@ import BaseHandle from "../nodes/base-handler-demo";
 import { useApi } from "../../api/useApi";
 import { useWorkflow } from "@/context/WorkflowContext";
 import TriggerNode from "../nodes/trigger-node";
+import { toast } from "sonner"
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
@@ -183,6 +184,12 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
     setWorkflowActive(newStatus);
     console.log(`/workflow/${selectedWorkflowId}`)
     await safeApi(() => callApi(`/workflow/${selectedWorkflowId}`, "PUT", { is_active: newStatus }));
+
+    if(newStatus){
+      toast.success("Workflow has been instantiated")
+    }else{
+      toast.error("Workflow has been Stopped")
+    }
   };
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../sidebar/app-sidebar";
 import Workflow from "../workflow";
 import { RightAppSidebar } from "../sidebar/right-app-sidebar";
+import { Toaster } from "@/components/ui/sonner"
 
 interface Node {
   id: number;
@@ -37,6 +38,7 @@ export default function LayoutComponent({
 }: LayoutComponentProps) {
   return (
     <div className="h-screen overflow-hidden">
+      <Toaster position="top-center"/>
       <SidebarProvider className="bg-background">
         <AppSidebar nodes={nodes} workflows={workflows} />
         <main className="w-full">
