@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Sidebar,
@@ -12,59 +14,101 @@ import { useApi } from "../../api/useApi";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 
-interface RightAppSidebarProps {
-  node: any;
+// -------------------- Type Definitions --------------------
+
+export interface NodeInput {
+  name: string;
+  label?: string;
+  type: string;
+  value?: any;
+  default?: any;
+  required?: boolean;
+  options?: { label: string; value: any }[];
+  show_if?: Record<string, any[]>;
+  group?: string;
+  placeholder?: string;
 }
 
+export interface NodeType {
+  id: number;
+  name: string;
+  inputs: NodeInput[];
+}
+
+// -------------------- Props --------------------
+
+interface RightAppSidebarProps {
+  node: NodeType | null;
+}
+
+// -------------------- Component --------------------
+
 export function RightAppSidebar({ node }: RightAppSidebarProps) {
-  const [values, setValues] = useState<Record<string, any>>({});
   const { callApi } = useApi();
 
-  // Initialize values from node inputs
+  // Initialize values from node inputs for first render
+  const [values, setValues] = useState<Record<string, any>>(() => {
+    if (!node?.inputs) return {};
+    const initialValues: Record<string, any> = {};
+    node.inputs.forEach((input: NodeInput) => {
+      initialValues[input.name] = input.value ?? input.default ?? "";
+    });
+    return initialValues;
+  });
+
+  // Reset values whenever a new node is selected (keyed by node id)
   useEffect(() => {
     if (!node?.inputs) return;
-
     const initialValues: Record<string, any> = {};
-    for (const input of node.inputs) {
-      const key = input.name || input.key;
-      initialValues[key] = input.value ?? input.default ?? "";
-    }
-
+    node.inputs.forEach((input: NodeInput) => {
+      initialValues[input.name] = input.value ?? input.default ?? "";
+    });
     setValues(initialValues);
-  }, [node]);
+  }, [node?.id]);
+
+  // Compute visible inputs based on show_if
+  const visibleInputs = node?.inputs.filter((input: NodeInput) => {
+    if (!input.show_if) return true;
+    const key = Object.keys(input.show_if)[0];
+    const allowedValues = input.show_if[key];
+    const currentValue =
+      values[key] ?? node.inputs.find((i) => i.name === key)?.default;
+    return allowedValues.includes(currentValue);
+  }) || [];
+
+  // Ensure all visible inputs have a value
+  useEffect(() => {
+    if (!visibleInputs.length) return;
+
+    setValues((prev) => {
+      const updated = { ...prev };
+      let hasChanged = false;
+
+      visibleInputs.forEach((input: NodeInput) => {
+        if (updated[input.name] === undefined) {
+          updated[input.name] = input.value ?? input.default ?? "";
+          hasChanged = true;
+        }
+      });
+
+      return hasChanged ? updated : prev;
+    });
+  }, [visibleInputs]);
 
   // Handle input changes
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Determine visible inputs based on `show_if` conditions
-  const getVisibleInputs = () => {
-    if (!node?.inputs) return [];
-    return node.inputs.filter((input: any) => {
-      if (!input.show_if) return true; // no condition, always show
-      const key = Object.keys(input.show_if)[0];
-      const allowedValues = input.show_if[key];
-      return allowedValues.includes(values[key]);
-    });
-  };
+  // Group inputs by `group` property
+  const groupedInputs: Record<string, NodeInput[]> = {};
+  visibleInputs.forEach((input: NodeInput) => {
+    const group = input.group || "";
+    if (!groupedInputs[group]) groupedInputs[group] = [];
+    groupedInputs[group].push(input);
+  });
 
-  const visibleInputs = getVisibleInputs();
-
-  // Reset hidden values when conditions change (like operation change)
-  useEffect(() => {
-    if (!node?.inputs) return;
-
-    const visibleKeys = visibleInputs.map((input: any) => input.name);
-    setValues((prev) => {
-      const newValues: Record<string, any> = {};
-      for (const key of visibleKeys) {
-        newValues[key] = prev[key];
-      }
-      return { ...prev, ...newValues };
-    });
-  }, [values.operation, node]); // re-run when `operation` changes
-
+  // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -83,8 +127,8 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
       }
 
       const body = { custom_config: bodyValues };
-      const response = await callApi(`/workflow-nodes/${node.id}`, "PUT", body);
-      toast.success("Saved node:", response)
+      const response = await callApi(`/workflow-nodes/${node?.id}`, "PUT", body);
+      toast.success("Saved node:", response);
       console.log("Configuration Saved!");
     } catch (error) {
       toast.error("Failed to save configuration");
@@ -92,38 +136,23 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
     }
   };
 
-  // Group inputs if they have a "group" property, otherwise default group
-  const groupedInputs: Record<string, any[]> = {};
-  visibleInputs.forEach((input) => {
-    const group = input.group || "";
-    if (!groupedInputs[group]) groupedInputs[group] = [];
-    groupedInputs[group].push(input);
-  });
-
   return (
     <Sidebar side="right">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            {node ? node.name : "Node Configuration"}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>{node ? node.name : "Node Configuration"}</SidebarGroupLabel>
           <SidebarGroupContent>
             {node ? (
               <form className="p-2 space-y-4" onSubmit={handleSubmit}>
                 {Object.keys(groupedInputs).map((groupName, idx) => (
                   <div key={idx} className="mb-4">
-                    <SidebarGroupLabel>{groupName}</SidebarGroupLabel>
+                    {groupName && <SidebarGroupLabel>{groupName}</SidebarGroupLabel>}
                     <SidebarGroupContent>
-                      {groupedInputs[groupName].map((input: any, i: number) => (
+                      {groupedInputs[groupName].map((input: NodeInput, i: number) => (
                         <div key={i} className="flex flex-col mb-3">
-                          <label
-                            htmlFor={input.name || input.key}
-                            className="mb-1 font-medium"
-                          >
-                            {input.label || input.name || input.key}
-                            {input.required && (
-                              <span className="text-red-500 ml-1">*</span>
-                            )}
+                          <label htmlFor={input.name} className="mb-1 font-medium">
+                            {input.label || input.name}
+                            {input.required && <span className="text-red-500 ml-1">*</span>}
                           </label>
                           <Field
                             input={input}
@@ -143,9 +172,8 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
                     </div>
                   </SidebarMenuItem>
                 )}
-                <Button type="submit">
-                    Save
-                </Button>
+
+                <Button type="submit">Save</Button>
               </form>
             ) : (
               <SidebarMenuItem>
