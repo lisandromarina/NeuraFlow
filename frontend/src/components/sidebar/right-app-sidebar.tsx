@@ -45,6 +45,7 @@ interface RightAppSidebarProps {
 
 export function RightAppSidebar({ node }: RightAppSidebarProps) {
   const { callApi } = useApi();
+  const groupedInputs: Record<string, NodeInput[]> = {};
 
   // Initialize values from node inputs for first render
   const [values, setValues] = useState<Record<string, any>>(() => {
@@ -56,44 +57,16 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
     return initialValues;
   });
 
-  // Reset values whenever a new node is selected (keyed by node id)
-  useEffect(() => {
-    if (!node?.inputs) return;
-    const initialValues: Record<string, any> = {};
-    node.inputs.forEach((input: NodeInput) => {
-      initialValues[input.name] = input.value ?? input.default ?? "";
-    });
-    setValues(initialValues);
-  }, [node?.id]);
-
+  
   // Compute visible inputs based on show_if
   const visibleInputs = node?.inputs.filter((input: NodeInput) => {
     if (!input.show_if) return true;
     const key = Object.keys(input.show_if)[0];
     const allowedValues = input.show_if[key];
     const currentValue =
-      values[key] ?? node.inputs.find((i) => i.name === key)?.default;
+    values[key] ?? node.inputs.find((i) => i.name === key)?.default;
     return allowedValues.includes(currentValue);
   }) || [];
-
-  // Ensure all visible inputs have a value
-  useEffect(() => {
-    if (!visibleInputs.length) return;
-
-    setValues((prev) => {
-      const updated = { ...prev };
-      let hasChanged = false;
-
-      visibleInputs.forEach((input: NodeInput) => {
-        if (updated[input.name] === undefined) {
-          updated[input.name] = input.value ?? input.default ?? "";
-          hasChanged = true;
-        }
-      });
-
-      return hasChanged ? updated : prev;
-    });
-  }, [visibleInputs]);
 
   // Handle input changes
   const handleChange = (name: string, value: any) => {
@@ -101,7 +74,6 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
   };
 
   // Group inputs by `group` property
-  const groupedInputs: Record<string, NodeInput[]> = {};
   visibleInputs.forEach((input: NodeInput) => {
     const group = input.group || "";
     if (!groupedInputs[group]) groupedInputs[group] = [];
@@ -135,6 +107,35 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
       console.error("Failed to save node:", error);
     }
   };
+
+    // Reset values whenever a new node is selected (keyed by node id)
+  useEffect(() => {
+    if (!node?.inputs) return;
+    const initialValues: Record<string, any> = {};
+    node.inputs.forEach((input: NodeInput) => {
+      initialValues[input.name] = input.value ?? input.default ?? "";
+    });
+    setValues(initialValues);
+  }, [node?.id]);
+  
+  // Ensure all visible inputs have a value
+  useEffect(() => {
+    if (!visibleInputs.length) return;
+
+    setValues((prev) => {
+      const updated = { ...prev };
+      let hasChanged = false;
+
+      visibleInputs.forEach((input: NodeInput) => {
+        if (updated[input.name] === undefined) {
+          updated[input.name] = input.value ?? input.default ?? "";
+          hasChanged = true;
+        }
+      });
+
+      return hasChanged ? updated : prev;
+    });
+  }, [visibleInputs]);
 
   return (
     <Sidebar side="right">
