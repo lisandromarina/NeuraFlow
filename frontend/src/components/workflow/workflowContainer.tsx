@@ -8,13 +8,14 @@ import { useApi } from "../../api/useApi";
 import { useWorkflow } from "@/context/WorkflowContext";
 import TriggerNode from "../nodes/trigger-node";
 import { toast } from "sonner"
+import GoogleSheetsNode from "../nodes/google-sheet";
 
 const nodeTypes: NodeTypes = {
   placeholderNode: PlaceholderNodeDemo,
   MultiplyNode: BaseHandle,
   HttpNode: BaseHandle,
   SchedulerNode: TriggerNode,
-  GoogleSheetsNode: BaseHandle,
+  GoogleSheetsNode: GoogleSheetsNode,
 };
 
 interface WorkflowContainerProps {
