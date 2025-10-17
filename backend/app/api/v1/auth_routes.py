@@ -27,8 +27,18 @@ def register(user: UserCreate, service: UserService = Depends(get_user_service))
 @router.post("/login")
 def login(user: UserCreate, service: UserService = Depends(get_user_service)):
     db_user = service.authenticate_user(user.email, user.password)
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = jwt.encode({"sub": db_user.email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+    payload = {
+        "sub": db_user.email,
+        "user_id": db_user.id, 
+        "exp": expire
+    }
+
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return {"access_token": token, "token_type": "bearer"}
 
 @router.get("/validate-token")
