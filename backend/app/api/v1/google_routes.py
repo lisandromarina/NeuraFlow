@@ -77,10 +77,12 @@ def connect_service(service: str, body: dict):
     if service_lower.lower() == "google":
 
         client_id = os.getenv("GOOGLE_CLIENT_ID")
-        redirect_uri = os.getenv(
-            "GOOGLE_REDIRECT_URI",
-            "http://localhost:8000/credentials/callback/google"
-        )
+        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        
+        if not client_id:
+            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
+        if not redirect_uri:
+            raise ValueError("Missing environment variable: GOOGLE_REDIRECT_URI")
 
         scope_str = " ".join(scopes)
 
@@ -120,10 +122,14 @@ def oauth_callback(
         token_endpoint = "https://oauth2.googleapis.com/token"
         client_id = os.getenv("GOOGLE_CLIENT_ID")
         client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        redirect_uri = os.getenv(
-            "GOOGLE_REDIRECT_URI",
-            "http://localhost:8000/credentials/callback/google_sheets"
-        )
+        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        
+        if not client_id:
+            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
+        if not client_secret:
+            raise ValueError("Missing environment variable: GOOGLE_CLIENT_SECRET")
+        if not redirect_uri:
+            raise ValueError("Missing environment variable: GOOGLE_REDIRECT_URI")
 
         data = {
             "code": code,
@@ -149,6 +155,9 @@ def oauth_callback(
         service.create_or_update_credential(UserAuthentication(**cred_data))
 
         # Redirect to frontend OAuth success page
-        frontend_url = "http://localhost:3000/oauth-success"
+        frontend_url = os.getenv("FRONTEND_URL")
+        if not frontend_url:
+            raise ValueError("Missing environment variable: FRONTEND_URL")
+        frontend_url = frontend_url + "/oauth-success"
         query = urllib.parse.urlencode({"provider": provider})
         return RedirectResponse(f"{frontend_url}?{query}")

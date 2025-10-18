@@ -7,10 +7,15 @@ from services.user_service import UserService
 from models.schemas.user import UserCreate, UserRead
 from datetime import datetime, timedelta
 from jose import jwt, JWTError # type: ignore
+import os
 
-SECRET_KEY = "super-secret-key"
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("Missing environment variable: SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+if not ACCESS_TOKEN_EXPIRE_MINUTES:
+    raise ValueError("Missing environment variable: ACCESS_TOKEN_EXPIRE_MINUTES")
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

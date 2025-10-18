@@ -5,7 +5,9 @@ from services.workflow_event_handler import WorkflowEventHandler
 from services.scheduler_service import SchedulerService
 from services.node_processor_service import NodeProcessorService  # renamed service
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")
+REDIS_URL = os.getenv("REDIS_URL")
+if not REDIS_URL:
+    raise ValueError("Missing environment variable: REDIS_URL")
 
 if __name__ == "__main__":
     # Redis repo

@@ -7,7 +7,9 @@ from dependencies import get_db_session
 import os
 import nodes # Do not delete, important for loading nodes!
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis_db:6379/0")
+REDIS_URL = os.getenv("REDIS_URL")
+if not REDIS_URL:
+    raise ValueError("Missing environment variable: REDIS_URL")
 
 if __name__ == "__main__":
     # get a DB session manually from the generator

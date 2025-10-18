@@ -35,12 +35,20 @@ class GoogleSheetsExecutor:
         if not creds_data:
             raise ValueError(f"No Google credentials found for user_id {user_id}")
 
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        
+        if not client_id:
+            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
+        if not client_secret:
+            raise ValueError("Missing environment variable: GOOGLE_CLIENT_SECRET")
+            
         credentials = Credentials(
             token=creds_data["access_token"],
             refresh_token=creds_data.get("refresh_token"),
             token_uri="https://oauth2.googleapis.com/token",
-            client_id=os.getenv("GOOGLE_CLIENT_ID"),
-            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+            client_id=client_id,
+            client_secret=client_secret,
             scopes=[creds_data.get("scope", "https://www.googleapis.com/auth/spreadsheets")]
         )
 
