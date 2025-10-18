@@ -2,14 +2,17 @@ import json
 from core.events import WORKFLOW_DELETED, WORKFLOW_UPDATED
 from fastapi import HTTPException # type: ignore
 from typing import List, Optional
+from models.schemas.workflow import Workflow
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from models.db_models.workflow_nodes import WorkflowNode
 from services.redis_service import RedisService
+from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCredentialRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
-from repositories.redis_repository import RedisRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from redis import Redis # type: ignore
+from models.db_models.node_db import Node
+from utils.token_security import decrypt_credentials
 
 class WorkflowNodeService:
     def __init__(
@@ -17,11 +20,13 @@ class WorkflowNodeService:
             workflow_node_repo: SqlAlchemyWorkflowNodeRepository, 
             node_repo: SqlAlchemyNodeRepository,
             workflow_repo: SqlAlchemyWorkflowRepository,
+            credentials_repo: SqlAlchemyUserCredentialRepository,
             redis_service: RedisService,
         ):
         self.workflow_node_repo = workflow_node_repo
         self.node_repo = node_repo 
         self.workflow_repo = workflow_repo
+        self.credentials_repo = credentials_repo
         self.redis_service = redis_service
 
 
@@ -134,11 +139,11 @@ class WorkflowNodeService:
         Return a WorkflowNode merged with its Node metadata,
         ready for UI display (labels, defaults, and current custom_config values).
         """
-        workflow_node = self.workflow_node_repo.get_by_id(workflow_node_id)
+        workflow_node: WorkflowNodeSchema = self.workflow_node_repo.get_by_id(workflow_node_id)
         if not workflow_node:
             raise HTTPException(status_code=404, detail="WorkflowNode not found")
 
-        node = self.node_repo.get_node(workflow_node.node_id)
+        node: Node = self.node_repo.get_node(workflow_node.node_id)
         if not node:
             raise HTTPException(status_code=404, detail="Node definition not found")
 
@@ -153,7 +158,23 @@ class WorkflowNodeService:
             inputs.append({**input_def, "value": value})
 
         outputs = config_metadata.get("outputs", [])
-        credentials = config_metadata.get("credentials", [])
+        credentials = config_metadata.get("credentials")
+        hasCred = False
+        if(credentials):
+            metadata_scope = credentials.get("scopes", [])
+            credentials_name = credentials.get("name")
+
+            workflow: Workflow = self.workflow_repo.get_by_id(workflow_node.workflow_id)
+
+            auth = self.credentials_repo.get_by_user_and_service(workflow.user_id, credentials_name)
+            
+            if(auth):
+                cred = decrypt_credentials(auth.credentials)
+                scope = cred.get("scope")
+                scope_list = set(scope.split())
+                metadata_set = set(metadata_scope)
+                if metadata_set.issubset(scope_list):
+                    hasCred = True
 
         return {
             "id": workflow_node.id,
@@ -164,5 +185,6 @@ class WorkflowNodeService:
             "position_y": workflow_node.position_y,
             "inputs": inputs,
             "outputs": outputs,
-            "credentials": credentials
+            "credentials": credentials,
+            "hasCredentials": hasCred
         }

@@ -42,6 +42,7 @@ export interface NodeType {
   name: string;
   credentials?: NodeCredentials;
   inputs: NodeInput[];
+  hasCredentials: boolean
 }
 
 // -------------------- Props --------------------
@@ -66,12 +67,15 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
       initialValues[input.name] = input.value ?? input.default ?? "";
     });
     setValues(initialValues);
-    setConnected(false); // reset credentials status
-  }, [node?.id, node?.inputs]);
+
+    // Set connected based on backend
+    setConnected(node.hasCredentials ?? false);
+  }, [node?.id, node?.inputs, node?.credentials]);
 
   // Compute visible inputs based on `show_if`
   const visibleInputs = useMemo(() => {
     if (!node) return [];
+    
     return node.inputs.filter((input) => {
       if (!input.show_if) return true;
       return Object.entries(input.show_if).every(([key, allowedValues]) => {
