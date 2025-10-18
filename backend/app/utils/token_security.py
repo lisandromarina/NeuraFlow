@@ -15,8 +15,12 @@ if len(SECRET_KEY) != 32:
     raise ValueError("CREDENTIALS_SECRET_KEY must decode to exactly 32 bytes for A256GCM")
 
 def encrypt_credentials(creds: dict) -> str:
-    """Encrypt credentials JSON"""
-    return jwe.encrypt(json.dumps(creds), SECRET_KEY, algorithm='dir', encryption='A256GCM')
+    """Encrypt credentials JSON and return compact string"""
+    # jwe.encrypt can return bytes, so decode to UTF-8
+    encrypted = jwe.encrypt(json.dumps(creds), SECRET_KEY, algorithm='dir', encryption='A256GCM')
+    if isinstance(encrypted, bytes):
+        return encrypted.decode('utf-8')  # <-- return string
+    return encrypted
 
 def decrypt_credentials(encrypted: str) -> dict:
     """Decrypt credentials JSON"""

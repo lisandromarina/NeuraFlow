@@ -138,11 +138,11 @@ class WorkflowNodeService:
         if not workflow_node:
             raise HTTPException(status_code=404, detail="WorkflowNode not found")
 
-        node_metadata = self.node_repo.get_node(workflow_node.node_id)
-        if not node_metadata:
+        node = self.node_repo.get_node(workflow_node.node_id)
+        if not node:
             raise HTTPException(status_code=404, detail="Node definition not found")
 
-        config_metadata = node_metadata.config_metadata or {}
+        config_metadata = node.config_metadata or {}
         custom_config = workflow_node.custom_config or {}
 
         # Merge inputs with values
@@ -153,14 +153,16 @@ class WorkflowNodeService:
             inputs.append({**input_def, "value": value})
 
         outputs = config_metadata.get("outputs", [])
+        credentials = config_metadata.get("credentials", [])
 
         return {
             "id": workflow_node.id,
-            "name": node_metadata.name,
-            "node_type": node_metadata.type,
+            "name": node.name,
+            "node_type": node.type,
             "workflow_id": workflow_node.workflow_id,
             "position_x": workflow_node.position_x,
             "position_y": workflow_node.position_y,
             "inputs": inputs,
-            "outputs": outputs
+            "outputs": outputs,
+            "credentials": credentials
         }

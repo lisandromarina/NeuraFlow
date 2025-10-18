@@ -1,7 +1,8 @@
+import json
 from typing import List, Optional
-from utils.token_security import decrypt_credentials
+from utils.token_security import decrypt_credentials, encrypt_credentials
 from models.db_models.user_credentials_db import UserCredentialDB
-from models.schemas.user_credential import UserCredentialCreate, UserCredentialUpdate
+from models.schemas.user_credential import UserAuthentication, UserCredentialCreate, UserCredentialUpdate
 from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCredentialRepository
 
 class UserCredentialService:
@@ -53,3 +54,47 @@ class UserCredentialService:
             "client_secret": decrypted_creds.get("client_secret"),
             "expires_in": decrypted_creds.get("expires_in"),
         }
+    
+    def create_or_update_credential(self, data: UserAuthentication) -> UserCredentialDB:
+        """
+        Creates or updates a credential for a user:
+        - If a credential for the same service exists:
+            - Decrypts and merges scopes if new ones are provided.
+            - Skips if scopes already exist.
+        - Otherwise, creates a new credential entry (encrypted).
+        """
+        existing_cred: UserCredentialDB = self.credential_repo.get_by_user_and_service(
+            user_id=data.user_id, service=data.service
+        )
+
+        if existing_cred:
+            existing_data = decrypt_credentials(existing_cred.credentials)
+
+            existing_scopes = set(existing_data.get("scope", "").split())
+
+            new_scopes = set(data.credentials.get("scope", "").split())
+
+            if new_scopes.issubset(existing_scopes):
+                return existing_cred
+
+            # Merge scopes
+            merged_scopes = list(existing_scopes.union(new_scopes))
+            existing_data["scope"] = " ".join(merged_scopes)
+
+            # FIXED: pass dict directly, do NOT json.dumps here
+            updated_encrypted = encrypt_credentials(existing_data)
+            existing_cred.credentials = updated_encrypted
+
+            return self.credential_repo.update(existing_cred)
+
+        # ✅ Create new credential (encrypt credentials first)
+        encrypted_creds = encrypt_credentials(data.credentials)
+        new_cred = UserCredentialDB(
+            user_id=data.user_id,
+            service=data.service,
+            auth_type=data.auth_type,
+            credentials=encrypted_creds
+        )
+
+        print("Creating new credential for service:", data.service)
+        return self.credential_repo.add(new_cred)

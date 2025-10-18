@@ -1,12 +1,13 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Dict, Optional
 from datetime import datetime
 
 class UserCredentialBase(BaseModel):
     user_id: int
     service: str
     auth_type: str
-    credentials: str  
+    credentials: str
+    provider: Optional[str] = None  
 
 class UserCredentialCreate(UserCredentialBase):
     pass
@@ -23,3 +24,9 @@ class UserCredentialSchema(UserCredentialBase):
 
     class Config:
         orm_mode = True
+
+class UserAuthentication(BaseModel):
+    user_id: int
+    service: str
+    auth_type: str
+    credentials: Dict

@@ -30,3 +30,11 @@ class SqlAlchemyUserCredentialRepository:
         self.db.delete(credential)
         self.db.commit()
         return True
+    
+    def get_by_user_and_service(self, user_id: int, service: str) -> UserCredentialDB:
+        return (
+            self.db.query(UserCredentialDB)
+            .filter(UserCredentialDB.user_id == user_id)
+            .filter(UserCredentialDB.service == service)
+            .first()
+        )

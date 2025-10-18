@@ -1,9 +1,12 @@
+import urllib
 from utils.token_security import encrypt_credentials
-from fastapi import APIRouter, Depends, HTTPException, Request, Query # type: ignore
+from fastapi import APIRouter, Depends, HTTPException, Query  # type: ignore
+from fastapi.responses import RedirectResponse # type: ignore
 from typing import List
 from urllib.parse import urlencode
 import os, json, base64, requests
 from models.schemas.user_credential import (
+    UserAuthentication,
     UserCredentialCreate,
     UserCredentialUpdate,
     UserCredentialSchema,
@@ -58,29 +61,39 @@ def delete_credential(credential_id: int, service: UserCredentialService = Depen
 
 # ---------------- OAUTH CONNECT FLOW ----------------
 
-@router.get("/connect/{service_name}")
-def connect_service(service_name: str, user_id: int):
+@router.post("/{service}/connect")
+def connect_service(service: str, body: dict):
     """
     Generate OAuth URL for the user to connect their account.
     Encodes user_id in the state parameter for safe identification.
     """
-    print("Here")
-    if service_name.lower() == "google_sheets":
+    user_id = body["user_id"]
+    provider = body["provider"]
+    scopes = body["scopes"]
+
+    service_lower = service.lower()
+    provider_lower = provider.lower()
+
+    if service_lower.lower() == "google":
+
         client_id = os.getenv("GOOGLE_CLIENT_ID")
         redirect_uri = os.getenv(
             "GOOGLE_REDIRECT_URI",
-            "http://localhost:8000/credentials/callback/google_sheets"
+            "http://localhost:8000/credentials/callback/google"
         )
-        scope = "https://www.googleapis.com/auth/spreadsheets"
+
+        scope_str = " ".join(scopes)
 
         # Encode user_id in state
-        state_payload = base64.urlsafe_b64encode(json.dumps({"user_id": user_id}).encode()).decode()
+        state_payload = base64.urlsafe_b64encode(
+            json.dumps({"user_id": user_id, "provider": provider_lower}).encode()
+        ).decode()
 
         oauth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": scope,
+            "scope": scope_str,
             "access_type": "offline",
             "prompt": "consent",
             "state": state_payload
@@ -96,18 +109,14 @@ def oauth_callback(
     state: str = Query(...),
     service: UserCredentialService = Depends(get_user_credential_service)
 ):
-    """
-    Exchange code for tokens and save encrypted credentials in DB.
-    Retrieves user_id safely from the state parameter.
-    """
-    # Decode user_id from state
     try:
         state_decoded = json.loads(base64.urlsafe_b64decode(state).decode())
         user_id = state_decoded["user_id"]
+        provider = state_decoded.get("provider") 
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid state parameter")
-
-    if service_name.lower() == "google_sheets":
+    
+    if service_name.lower() == "google":
         token_endpoint = "https://oauth2.googleapis.com/token"
         client_id = os.getenv("GOOGLE_CLIENT_ID")
         client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -116,7 +125,6 @@ def oauth_callback(
             "http://localhost:8000/credentials/callback/google_sheets"
         )
 
-        # Exchange code for access + refresh tokens
         data = {
             "code": code,
             "client_id": client_id,
@@ -125,18 +133,22 @@ def oauth_callback(
             "grant_type": "authorization_code",
         }
         resp = requests.post(token_endpoint, data=data)
+
         if not resp.ok:
             raise HTTPException(status_code=400, detail="Failed to get tokens")
 
         token_data = resp.json()
-        encrypted_token = encrypt_credentials(token_data)
 
         cred_data = {
             "user_id": user_id,
             "service": service_name,
             "auth_type": "oauth2",
-            "credentials": encrypted_token   # <-- store encrypted string
+            "credentials": token_data
         }
-        return service.create_credential(UserCredentialCreate(**cred_data))
 
-    raise HTTPException(status_code=400, detail="Unsupported service")
+        service.create_or_update_credential(UserAuthentication(**cred_data))
+
+        # Redirect to frontend OAuth success page
+        frontend_url = "http://localhost:3000/oauth-success"
+        query = urllib.parse.urlencode({"provider": provider})
+        return RedirectResponse(f"{frontend_url}?{query}")
