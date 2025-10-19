@@ -29,12 +29,14 @@ export function Field({ input, value, onChange }: FieldProps) {
   switch (input.type) {
     case "number":
     case "text":
+    case "string":
       return (
         <div className="flex flex-col">
           <Input
-            type={input.type}
+            type={input.type === "string" ? "text" : input.type}
             id={input.name}
-            value={value}
+            value={value ?? ""}
+            placeholder={input.placeholder}
             required={!!input.required}
             onChange={(e) => handleChange(e.target.value)}
           />
@@ -56,15 +58,23 @@ export function Field({ input, value, onChange }: FieldProps) {
       )
 
     case "select":
+      // Ensure value is a string that matches one of the options
+      const normalizedValue = value != null && value !== "" ? String(value) : "";
+      const selectValue = normalizedValue || undefined;
+      
       return (
         <div className="flex flex-col">
-          <Select value={value} onValueChange={(val) => handleChange(val)}>
+          <Select 
+            key={`${input.name}-${selectValue || 'empty'}`}
+            value={selectValue} 
+            onValueChange={(val) => handleChange(val)}
+          >
             <SelectTrigger id={input.name}>
-              <SelectValue placeholder="Select an option" />
+              <SelectValue placeholder={input.placeholder || "Select an option"} />
             </SelectTrigger>
             <SelectContent>
               {input.options?.map((option: any, idx: number) => (
-                <SelectItem key={idx} value={option.value ?? option}>
+                <SelectItem key={idx} value={String(option.value ?? option)}>
                   {option.label ?? option}
                 </SelectItem>
               ))}
@@ -111,6 +121,21 @@ export function Field({ input, value, onChange }: FieldProps) {
               />
             </PopoverContent>
           </Popover>
+        </div>
+      )
+
+    case "json":
+      return (
+        <div className="flex flex-col">
+          <Textarea
+            id={input.name}
+            value={typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+            required={!!input.required}
+            onChange={(e) => handleChange(e.target.value)}
+            rows={6}
+            placeholder={input.placeholder}
+            className="font-mono text-sm"
+          />
         </div>
       )
 

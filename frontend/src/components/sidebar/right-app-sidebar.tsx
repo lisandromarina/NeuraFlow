@@ -64,7 +64,13 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
     if (!node) return;
     const initialValues: Record<string, any> = {};
     node.inputs.forEach((input) => {
-      initialValues[input.name] = input.value ?? input.default ?? "";
+      // Use the value from the backend (which includes saved custom_config values)
+      // Fall back to default if no value is set
+      // For select fields, don't use empty string as it won't match show_if conditions
+      const value = input.value ?? input.default;
+      if (value !== undefined && value !== null) {
+        initialValues[input.name] = value;
+      }
     });
     setValues(initialValues);
 
@@ -77,9 +83,29 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
     if (!node) return [];
     
     return node.inputs.filter((input) => {
+      // If no show_if condition, always show the input
       if (!input.show_if) return true;
+      
+      // Check all show_if conditions
       return Object.entries(input.show_if).every(([key, allowedValues]) => {
-        const currentValue = values[key] ?? node.inputs.find((i) => i.name === key)?.default;
+        // Get the current value from the state first (this is what the user has selected)
+        let currentValue = values[key];
+        
+        // If not in state, check the input definition
+        if (currentValue === undefined || currentValue === null || currentValue === "") {
+          const inputDef = node.inputs.find((i) => i.name === key);
+          currentValue = inputDef?.value;
+          // Only use default if value is also not set
+          if (currentValue === undefined || currentValue === null || currentValue === "") {
+            currentValue = inputDef?.default;
+          }
+        }
+        
+        // Handle empty/null/undefined values - they won't match any show_if condition
+        if (currentValue === undefined || currentValue === null || currentValue === "") {
+          return false;
+        }
+        
         return allowedValues.includes(currentValue);
       });
     });
@@ -156,13 +182,19 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
 
     try {
       const bodyValues = { ...values };
-      if (bodyValues.values && typeof bodyValues.values === "string") {
-        try {
-          bodyValues.values = JSON.parse(bodyValues.values);
-        } catch {
-          toast.error("Invalid JSON in 'values'");
-          return;
-        }
+      
+      // Parse JSON fields
+      if (node) {
+        node.inputs.forEach((input) => {
+          if (input.type === "json" && bodyValues[input.name] && typeof bodyValues[input.name] === "string") {
+            try {
+              bodyValues[input.name] = JSON.parse(bodyValues[input.name]);
+            } catch {
+              toast.error(`Invalid JSON in '${input.label || input.name}'`);
+              return;
+            }
+          }
+        });
       }
 
       const body = { custom_config: bodyValues };
@@ -189,7 +221,7 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
 
   return (
     <Sidebar side="right">
-      <SidebarContent>
+      <SidebarContent key={node.id}>
         <SidebarGroup>
           <SidebarGroupLabel>{node.name}</SidebarGroupLabel>
           <SidebarGroupContent>
