@@ -1,8 +1,8 @@
 import React from "react";
-import { LoginComponent } from "./LoginComponent";
+import LoginComponent from "./LoginComponent";
 import { useAuth } from "@/context/AuthContext";
 import { useApi } from "@/api/useApi";
-import useFormState from "@/hooks/useFormState"; // import your TS hook
+import useFormState from "@/hooks/useFormState";
 
 interface FormState {
   email: string;
@@ -13,7 +13,7 @@ export default function LoginContainer() {
   const { login } = useAuth();
   const { callApi } = useApi();
 
-  // ✅ Use the hook instead of useState
+  // Use the hook instead of useState
   const { formData, handleChange, resetForm } = useFormState<FormState>({
     email: "",
     password: "",
@@ -45,3 +45,4 @@ export default function LoginContainer() {
     <LoginComponent handleSubmit={handleSubmit} handleChange={handleChange} />
   );
 }
+

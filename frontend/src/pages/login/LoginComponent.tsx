@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -10,24 +9,22 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link } from "react-router-dom";
 
 interface LoginComponentProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function LoginComponent({ handleSubmit, handleChange }: LoginComponentProps) {
+export default function LoginComponent({ handleSubmit, handleChange }: LoginComponentProps) {
   return (
     <div className="w-full h-screen flex items-center justify-center bg-secondary">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle className="text-2xl">Welcome back</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your email and password to sign in
           </CardDescription>
-          <CardAction>
-            <Button variant="link">Sign Up</Button>
-          </CardAction>
         </CardHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6" >
@@ -65,16 +62,23 @@ export function LoginComponent({ handleSubmit, handleChange }: LoginComponentPro
             </div>
           </CardContent>
 
-          <CardFooter className="flex-col gap-2">
+          <CardFooter className="flex-col gap-4">
             <Button type="submit" className="w-full">
-              Login
+              Sign in
             </Button>
             <Button variant="outline" className="w-full">
-              Login with Google
+              Sign in with Google
             </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link to="/register" className="underline underline-offset-4 hover:text-primary">
+                Sign up
+              </Link>
+            </div>
           </CardFooter>
         </form>
       </Card>
     </div>
   );
 }
+

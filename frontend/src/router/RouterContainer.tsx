@@ -1,4 +1,5 @@
-import LoginPage from '../components/login';
+import LoginPage from '../pages/login';
+import RegisterPage from '../pages/register';
 import Layout from '../components/layout';
 import OAuthSuccessPage from '../pages/oauth-success';
 import { Route, Routes } from 'react-router-dom';
@@ -10,6 +11,7 @@ function RouterContainer() {
     <Routes>
       <Route path="/" element={<PublicRoute />}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Route>
 
       <Route path="/" element={<PrivateRoute />}>
