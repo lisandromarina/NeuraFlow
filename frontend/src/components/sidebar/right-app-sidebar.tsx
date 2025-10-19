@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { CheckCircle2, CircleDot, Save, Settings2 } from "lucide-react";
+import { CheckCircle2, CircleDot, Save, Settings2, Trash2 } from "lucide-react";
 import { Separator } from "../ui/separator";
 
 // -------------------- Type Definitions --------------------
@@ -52,11 +52,12 @@ export interface NodeType {
 
 interface RightAppSidebarProps {
   node: NodeType | null;
+  onNodeDelete?: ((nodeId: number) => Promise<void>) | null;
 }
 
 // -------------------- Component --------------------
 
-export function RightAppSidebar({ node }: RightAppSidebarProps) {
+export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
   const { callApi } = useApi();
   const { open, openMobile, setOpen, setOpenMobile, isMobile } = useSidebar();
 
@@ -225,6 +226,27 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!node) return;
+    
+    if (!onNodeDelete || typeof onNodeDelete !== 'function') {
+      toast.error("Delete function not available");
+      console.error("onNodeDelete is not a function:", onNodeDelete);
+      return;
+    }
+    
+    try {
+      await onNodeDelete(node.id);
+      // Close the sidebar after successful deletion
+      setOpen(false);
+      setOpenMobile(false);
+      toast.success("Node deleted successfully!");
+    } catch (err) {
+      toast.error("Failed to delete node");
+      console.error(err);
+    }
+  };
+
   if (!node) {
     return (
       <Sidebar side="right" className="border-l">
@@ -261,6 +283,16 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
                   <span className="text-xs text-muted-foreground">ID: {node.id}</span>
                 </div>
               </div>
+              {isMobile && onNodeDelete && typeof onNodeDelete === 'function' && (
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleDelete}
+                  className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>

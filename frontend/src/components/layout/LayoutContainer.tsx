@@ -47,6 +47,7 @@ const LayoutContainer: React.FC = () => {
 
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [nodeDeleteHandler, setNodeDeleteHandler] = useState<((nodeId: number) => Promise<void>) | null>(() => null);
 
   // Fetch nodes
   const fetchNodes = async () => {
@@ -137,7 +138,7 @@ const LayoutContainer: React.FC = () => {
       const workflow = workflows.find((wf) => wf.id === id);
       if (!workflow) return;
 
-      await callApi(`/workflow/${id}`, "PATCH", {
+      await callApi(`/workflow/${id}`, "PUT", {
         is_active: !workflow.is_active,
       });
       
@@ -170,6 +171,8 @@ const LayoutContainer: React.FC = () => {
       onWorkflowCreate={handleCreateWorkflow}
       onWorkflowDelete={handleDeleteWorkflow}
       onWorkflowToggle={handleToggleWorkflow}
+      onNodeDelete={nodeDeleteHandler}
+      setNodeDeleteHandler={setNodeDeleteHandler}
     />
   );
 };

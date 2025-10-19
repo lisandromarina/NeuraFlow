@@ -20,11 +20,13 @@ const nodeTypes: NodeTypes = {
 interface WorkflowContainerProps {
   setOpenRightSidebar: (value: boolean) => void;
   setSelectedNode: (node: any) => void;
+  onNodeDelete?: React.Dispatch<React.SetStateAction<((nodeId: number) => Promise<void>) | null>>;
 }
 
 const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
   setSelectedNode,
   setOpenRightSidebar,
+  onNodeDelete,
 }) => {
   const { selectedWorkflowId } = useWorkflow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -89,6 +91,22 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
   const handleDropWrapper = (event: React.DragEvent) => {
     handleDrop(event, reactFlowWrapper);
   };
+
+  // Expose the single node delete handler to parent
+  useEffect(() => {
+    if (onNodeDelete) {
+      const handleSingleNodeDelete = async (nodeId: number) => {
+        const nodeToDelete = nodes.find((n) => n.id === nodeId.toString());
+        if (nodeToDelete) {
+          await handleNodesDelete([nodeToDelete]);
+          setSelectedNode(null);
+          setOpenRightSidebar(false);
+        }
+      };
+      // Use functional setter to store the function in state
+      onNodeDelete(() => handleSingleNodeDelete);
+    }
+  }, [onNodeDelete, nodes, handleNodesDelete, setSelectedNode, setOpenRightSidebar]);
 
   return (
     <div 

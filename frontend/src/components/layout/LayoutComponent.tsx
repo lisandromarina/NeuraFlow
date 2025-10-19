@@ -29,6 +29,8 @@ interface LayoutComponentProps {
   onWorkflowCreate: (name: string, description: string) => Promise<void>;
   onWorkflowDelete: (id: number) => Promise<void>;
   onWorkflowToggle: (id: number) => Promise<void>;
+  onNodeDelete: ((nodeId: number) => Promise<void>) | null;
+  setNodeDeleteHandler: React.Dispatch<React.SetStateAction<((nodeId: number) => Promise<void>) | null>>;
 }
 
 export default function LayoutComponent({
@@ -41,6 +43,8 @@ export default function LayoutComponent({
   onWorkflowCreate,
   onWorkflowDelete,
   onWorkflowToggle,
+  onNodeDelete,
+  setNodeDeleteHandler,
 }: LayoutComponentProps) {
   return (
     <div className="h-screen overflow-hidden">
@@ -58,6 +62,7 @@ export default function LayoutComponent({
           <Workflow
             setOpenRightSidebar={setIsRightSidebarOpen}
             setSelectedNode={setSelectedNode}
+            onNodeDelete={setNodeDeleteHandler}
           />
         </main>
       </SidebarProvider>
@@ -66,7 +71,11 @@ export default function LayoutComponent({
         open={isRightSidebarOpen} 
         onOpenChange={setIsRightSidebarOpen}
       >
-        <RightAppSidebar key={selectedNode?.id} node={selectedNode} />
+        <RightAppSidebar 
+          key={selectedNode?.id} 
+          node={selectedNode} 
+          onNodeDelete={onNodeDelete}
+        />
       </SidebarProvider>
     </div>
   );
