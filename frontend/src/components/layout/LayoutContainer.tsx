@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useApi } from "../../api/useApi";
 import { useWorkflow } from "@/context/WorkflowContext";
 import LayoutComponent from "./LayoutComponent";
+import { toast } from "sonner";
 
 // Node interface
 interface ApiNode {
@@ -93,6 +94,62 @@ const LayoutContainer: React.FC = () => {
     }
   };
 
+  // Create workflow
+  const handleCreateWorkflow = async (name: string, description: string) => {
+    try {
+      const newWorkflow = await callApi("/workflow/", "POST", {
+        name,
+        description,
+        is_active: false,
+        user_id: 1, // TODO: Get from auth context
+      });
+      toast.success("Workflow created successfully!");
+      await fetchWorkflows();
+      setSelectedWorkflowId(newWorkflow.id);
+    } catch (err: any) {
+      toast.error("Failed to create workflow");
+      console.error("Failed to create workflow:", err);
+      throw err;
+    }
+  };
+
+  // Delete workflow
+  const handleDeleteWorkflow = async (id: number) => {
+    try {
+      await callApi(`/workflow/${id}`, "DELETE");
+      toast.success("Workflow deleted successfully!");
+      await fetchWorkflows();
+      // Select another workflow if the deleted one was selected
+      if (selectedWorkflowId === id) {
+        const remainingWorkflows = workflows.filter((wf) => wf.id !== id);
+        setSelectedWorkflowId(remainingWorkflows.length > 0 ? remainingWorkflows[0].id : null);
+      }
+    } catch (err: any) {
+      toast.error("Failed to delete workflow");
+      console.error("Failed to delete workflow:", err);
+      throw err;
+    }
+  };
+
+  // Toggle workflow active state
+  const handleToggleWorkflow = async (id: number) => {
+    try {
+      const workflow = workflows.find((wf) => wf.id === id);
+      if (!workflow) return;
+
+      await callApi(`/workflow/${id}`, "PATCH", {
+        is_active: !workflow.is_active,
+      });
+      
+      toast.success(`Workflow ${!workflow.is_active ? "activated" : "paused"}!`);
+      await fetchWorkflows();
+    } catch (err: any) {
+      toast.error("Failed to update workflow");
+      console.error("Failed to toggle workflow:", err);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchNodes(), fetchWorkflows()]).finally(() => setLoading(false));
@@ -110,6 +167,9 @@ const LayoutContainer: React.FC = () => {
       setSelectedNode={setSelectedNode}
       isRightSidebarOpen={isRightSidebarOpen}
       setIsRightSidebarOpen={setIsRightSidebarOpen}
+      onWorkflowCreate={handleCreateWorkflow}
+      onWorkflowDelete={handleDeleteWorkflow}
+      onWorkflowToggle={handleToggleWorkflow}
     />
   );
 };

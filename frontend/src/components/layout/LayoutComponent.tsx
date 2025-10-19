@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../sidebar/app-sidebar";
 import Workflow from "../workflow";
 import { RightAppSidebar } from "../sidebar/right-app-sidebar";
-import { Toaster } from "@/components/ui/sonner"
+import { Toaster } from "@/components/ui/sonner";
 
 interface Node {
   id: number;
@@ -26,6 +26,9 @@ interface LayoutComponentProps {
   setSelectedNode: (node: any) => void;
   isRightSidebarOpen: boolean;
   setIsRightSidebarOpen: (open: boolean) => void;
+  onWorkflowCreate: (name: string, description: string) => Promise<void>;
+  onWorkflowDelete: (id: number) => Promise<void>;
+  onWorkflowToggle: (id: number) => Promise<void>;
 }
 
 export default function LayoutComponent({
@@ -35,12 +38,21 @@ export default function LayoutComponent({
   setSelectedNode,
   isRightSidebarOpen,
   setIsRightSidebarOpen,
+  onWorkflowCreate,
+  onWorkflowDelete,
+  onWorkflowToggle,
 }: LayoutComponentProps) {
   return (
     <div className="h-screen overflow-hidden">
       <Toaster position="top-center"/>
       <SidebarProvider className="bg-background">
-        <AppSidebar nodes={nodes} workflows={workflows} />
+        <AppSidebar 
+          nodes={nodes} 
+          workflows={workflows}
+          onWorkflowCreate={onWorkflowCreate}
+          onWorkflowDelete={onWorkflowDelete}
+          onWorkflowToggle={onWorkflowToggle}
+        />
         <main className="w-full">
           <SidebarTrigger className="text-secondary-foreground"/>
           <Workflow
