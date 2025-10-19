@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Field } from "../ui/fields";
 import { useApi } from "../../api/useApi";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -59,6 +60,7 @@ interface RightAppSidebarProps {
 
 export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
   const { callApi } = useApi();
+  const { userId } = useAuth();
   const { open, openMobile, setOpen, setOpenMobile, isMobile } = useSidebar();
 
   const [values, setValues] = useState<Record<string, any>>({});
@@ -147,10 +149,14 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
 
   const handleConnect = () => {
     if (!node?.credentials) return;
+    if (!userId) {
+      toast.error("User not authenticated");
+      return;
+    }
     console.log(node?.credentials)
 
     callApi(node.credentials.endpoint + `/connect`, "POST", {
-      user_id:1,
+      user_id: userId,
       scopes: node.credentials.scopes,
       provider: node.credentials.type
     })

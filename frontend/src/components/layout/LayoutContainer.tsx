@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useApi } from "../../api/useApi";
+import { useAuth } from "@/context/AuthContext";
 import { useWorkflow } from "@/context/WorkflowContext";
 import LayoutComponent from "./LayoutComponent";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ interface WorkflowType {
 
 const LayoutContainer: React.FC = () => {
   const { callApi } = useApi();
+  const { userId } = useAuth();
   const { selectedWorkflowId, setSelectedWorkflowId } = useWorkflow();
 
   const [nodes, setNodes] = useState<SidebarNode[]>([]);
@@ -71,8 +73,13 @@ const LayoutContainer: React.FC = () => {
 
   // Fetch workflows
   const fetchWorkflows = async () => {
+    if (!userId) {
+      console.warn("Cannot fetch workflows: user not authenticated");
+      return;
+    }
+
     try {
-      const data: SidebarWorkflow[] = await callApi("/workflow/", "GET");
+      const data: SidebarWorkflow[] = await callApi(`/workflow/user/${userId}`, "GET");
       if (!data) throw new Error("No data returned from API");
 
       const mappedWorkflows: WorkflowType[] = data.map((wf) => ({
@@ -97,12 +104,17 @@ const LayoutContainer: React.FC = () => {
 
   // Create workflow
   const handleCreateWorkflow = async (name: string, description: string) => {
+    if (!userId) {
+      toast.error("User not authenticated");
+      return;
+    }
+    
     try {
       const newWorkflow = await callApi("/workflow/", "POST", {
         name,
         description,
         is_active: false,
-        user_id: 1, // TODO: Get from auth context
+        user_id: userId,
       });
       toast.success("Workflow created successfully!");
       await fetchWorkflows();
@@ -152,10 +164,12 @@ const LayoutContainer: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!userId) return; // Wait for user to be authenticated
+    
     setLoading(true);
     Promise.all([fetchNodes(), fetchWorkflows()]).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
