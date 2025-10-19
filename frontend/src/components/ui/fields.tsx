@@ -132,10 +132,11 @@ export function Field({ input, value, onChange }: FieldProps) {
             value={typeof value === "string" ? value : JSON.stringify(value, null, 2)}
             required={!!input.required}
             onChange={(e) => handleChange(e.target.value)}
-            rows={6}
-            placeholder={input.placeholder}
-            className="font-mono text-sm"
+            rows={8}
+            placeholder={input.placeholder || '[\n  ["value1", "value2"]\n]'}
+            className="font-mono text-sm resize-y min-h-[120px]"
           />
+          <p className="text-xs text-muted-foreground mt-1">Enter valid JSON data</p>
         </div>
       )
 

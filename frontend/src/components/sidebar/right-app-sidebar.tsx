@@ -4,15 +4,15 @@ import React, { useEffect, useState, useMemo } from "react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Field } from "../ui/fields";
 import { useApi } from "../../api/useApi";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { CheckCircle2, CircleDot, Save, Settings2 } from "lucide-react";
+import { Separator } from "../ui/separator";
 
 // -------------------- Type Definitions --------------------
 
@@ -27,6 +27,7 @@ export interface NodeInput {
   show_if?: Record<string, any[]>;
   group?: string;
   placeholder?: string;
+  description?: string;
 }
 
 export interface NodeCredentials {
@@ -40,6 +41,7 @@ export interface NodeCredentials {
 export interface NodeType {
   id: number;
   name: string;
+  node_type?: string;
   credentials?: NodeCredentials;
   inputs: NodeInput[];
   hasCredentials: boolean
@@ -209,61 +211,135 @@ export function RightAppSidebar({ node }: RightAppSidebarProps) {
 
   if (!node) {
     return (
-      <Sidebar side="right">
-        <SidebarContent>
-          <SidebarMenuItem>
-            <div className="p-2 text-gray-500">Select a node to see its configuration</div>
-          </SidebarMenuItem>
+      <Sidebar side="right" className="border-l">
+        <SidebarContent className="p-6">
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Settings2 className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-1">No Node Selected</h3>
+              <p className="text-sm text-muted-foreground">
+                Select a node from the workflow to view and edit its configuration
+              </p>
+            </div>
+          </div>
         </SidebarContent>
       </Sidebar>
     );
   }
 
   return (
-    <Sidebar side="right">
-      <SidebarContent key={node.id}>
-        <SidebarGroup>
-          <SidebarGroupLabel>{node.name}</SidebarGroupLabel>
-          <SidebarGroupContent>
+    <Sidebar side="right" className="border-l">
+      <SidebarContent key={node.id} className="p-0">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-background border-b">
+          <div className="p-6 pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold tracking-tight mb-1">{node.name}</h2>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {node.node_type}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">ID: {node.id}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 pt-4 space-y-6">
             {/* Credentials section */}
             {node.credentials && (
-              <div className="mb-4 p-2 border rounded">
-                <div className="font-medium mb-2">{node.credentials.label}</div>
-                <Button onClick={handleConnect} disabled={connected}>
-                  {connected ? "Connected" : "Connect Account"}
-                </Button>
-              </div>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    {connected ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <CircleDot className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    {node.credentials.label}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {connected ? "Account connected successfully" : "Connect your account to use this node"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <Button 
+                    onClick={handleConnect} 
+                    disabled={connected}
+                    variant={connected ? "outline" : "default"}
+                    className="w-full"
+                    size="sm"
+                  >
+                    {connected ? "Connected" : "Connect Account"}
+                  </Button>
+                </CardContent>
+              </Card>
             )}
 
-            {/* Node inputs */}
-            <form className="p-2 space-y-4" onSubmit={handleSubmit}>
+            {/* Node Configuration Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
               {Object.entries(groupedInputs).map(([groupName, inputs], idx) => (
-                <div key={idx} className="mb-4">
-                  {groupName && <SidebarGroupLabel>{groupName}</SidebarGroupLabel>}
-                  <SidebarGroupContent>
+                <div key={idx}>
+                  {groupName && (
+                    <>
+                      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        {groupName}
+                      </h3>
+                    </>
+                  )}
+                  <div className="space-y-4">
                     {inputs.map((input) => (
-                      <div key={input.name} className="flex flex-col mb-3">
-                        <label htmlFor={input.name} className="mb-1 font-medium">
+                      <div key={input.name} className="space-y-2">
+                        <label 
+                          htmlFor={input.name} 
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
+                        >
                           {input.label ?? input.name}
-                          {input.required && <span className="text-red-500 ml-1">*</span>}
+                          {input.required && <span className="text-destructive">*</span>}
                         </label>
+                        {input.description && (
+                          <p className="text-xs text-muted-foreground">{input.description}</p>
+                        )}
                         <Field input={input} value={values[input.name]} onChange={handleChange} />
                       </div>
                     ))}
-                  </SidebarGroupContent>
+                  </div>
+                  {idx < Object.entries(groupedInputs).length - 1 && (
+                    <Separator className="mt-6" />
+                  )}
                 </div>
               ))}
 
-              {visibleInputs.length === 0 && (
-                <SidebarMenuItem>
-                  <div className="p-2 text-gray-500">No inputs available for the selected operation.</div>
-                </SidebarMenuItem>
+              {visibleInputs.length === 0 && !node.credentials && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground text-center">
+                      No configuration options available for this node.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
-
-              <Button type="submit">Save</Button>
             </form>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          </div>
+        </div>
+
+        {/* Footer with Save Button */}
+        <div className="sticky bottom-0 bg-background border-t p-4">
+          <Button 
+            onClick={handleSubmit} 
+            className="w-full"
+            size="default"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save Configuration
+          </Button>
+        </div>
       </SidebarContent>
     </Sidebar>
   );
