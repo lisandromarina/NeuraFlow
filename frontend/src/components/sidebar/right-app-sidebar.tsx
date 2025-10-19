@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import {
   Sidebar,
   SidebarContent,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Field } from "../ui/fields";
 import { useApi } from "../../api/useApi";
@@ -57,9 +58,24 @@ interface RightAppSidebarProps {
 
 export function RightAppSidebar({ node }: RightAppSidebarProps) {
   const { callApi } = useApi();
+  const { open, openMobile, setOpen, setOpenMobile, isMobile } = useSidebar();
 
   const [values, setValues] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
+
+  // Sync mobile state with desktop state when open changes
+  useEffect(() => {
+    if (isMobile && open) {
+      setOpenMobile(true);
+    }
+  }, [open, isMobile, setOpenMobile]);
+
+  // Sync desktop state when mobile sheet closes
+  useEffect(() => {
+    if (isMobile && !openMobile && open) {
+      setOpen(false);
+    }
+  }, [openMobile, open, isMobile, setOpen]);
 
   // Initialize input values whenever a new node is selected
   useEffect(() => {

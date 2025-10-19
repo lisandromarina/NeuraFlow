@@ -62,7 +62,10 @@ export default function LayoutComponent({
         </main>
       </SidebarProvider>
 
-      <SidebarProvider open={isRightSidebarOpen}>
+      <SidebarProvider 
+        open={isRightSidebarOpen} 
+        onOpenChange={setIsRightSidebarOpen}
+      >
         <RightAppSidebar key={selectedNode?.id} node={selectedNode} />
       </SidebarProvider>
     </div>
