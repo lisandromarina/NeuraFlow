@@ -92,9 +92,17 @@ const LayoutContainer: React.FC = () => {
 
       setWorkflows(mappedWorkflows);
 
-      // Set default workflow if none is selected yet
-      if (mappedWorkflows.length > 0 && selectedWorkflowId === null) {
-        setSelectedWorkflowId(mappedWorkflows[0].id); // choose first workflow as default
+      // Check if current selectedWorkflowId exists in the new workflows
+      const workflowExists = mappedWorkflows.some(wf => wf.id === selectedWorkflowId);
+      
+      if (mappedWorkflows.length > 0) {
+        if (!workflowExists) {
+          // If selected workflow doesn't exist for this user, select the first one
+          setSelectedWorkflowId(mappedWorkflows[0].id);
+        }
+      } else {
+        // If user has no workflows, reset selection
+        setSelectedWorkflowId(null);
       }
     } catch (err: any) {
       console.error("Failed to fetch workflows:", err);
@@ -164,7 +172,14 @@ const LayoutContainer: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!userId) return; // Wait for user to be authenticated
+    if (!userId) {
+      // Reset state when user logs out
+      setWorkflows([]);
+      setNodes([]);
+      setSelectedWorkflowId(null);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     Promise.all([fetchNodes(), fetchWorkflows()]).finally(() => setLoading(false));
