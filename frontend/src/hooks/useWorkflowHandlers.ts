@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useApi } from '../api/useApi';
 import { toast } from 'sonner';
+import { useWorkflow } from '@/context/WorkflowContext';
 import type { WorkflowNodeType, WorkflowEdgeType } from './useWorkflowNodes';
 
 interface UseWorkflowHandlersProps {
@@ -37,6 +38,7 @@ export const useWorkflowHandlers = ({
   viewport,
 }: UseWorkflowHandlersProps) => {
   const { callApi } = useApi();
+  const { nodeForPlacement, setNodeForPlacement } = useWorkflow();
 
   const safeApi = useCallback(async (fn: () => Promise<any>, fallback: any = null) => {
     try {
@@ -54,10 +56,47 @@ export const useWorkflowHandlers = ({
     setOpenRightSidebar(true);
   }, [safeApi, callApi, setSelectedNode, setOpenRightSidebar]);
 
-  const handlePaneClick = useCallback(() => {
+  const handlePaneClick = useCallback(async (event: React.MouseEvent) => {
+    // If there's a node waiting to be placed (mobile tap-to-place mode)
+    if (nodeForPlacement) {
+      const target = event.target as HTMLElement;
+      const bounds = target.getBoundingClientRect?.() || event.currentTarget.getBoundingClientRect();
+      
+      const position = { 
+        x: (event.clientX - bounds.left - viewport.x) / viewport.zoom, 
+        y: (event.clientY - bounds.top - viewport.y) / viewport.zoom 
+      };
+
+      const created = await createNode({
+        workflow_id: selectedWorkflowId,
+        node_id: nodeForPlacement.id,
+        name: nodeForPlacement.title,
+        position_x: position.x,
+        position_y: position.y,
+      });
+
+      if (created?.id) {
+        setNodes((nds) => [
+          ...nds,
+          {
+            id: created.id.toString(),
+            type: created.node_category,
+            position: { x: created.position_x, y: created.position_y },
+            data: { label: created.name, customConfig: created.custom_config, actualType: nodeForPlacement.category },
+          },
+        ]);
+        toast.success(`${nodeForPlacement.title} added!`);
+      }
+      
+      // Clear the node placement state
+      setNodeForPlacement(null);
+      return;
+    }
+
+    // Normal pane click behavior - close sidebar
     setOpenRightSidebar(false);
     setSelectedNode(null);
-  }, [setOpenRightSidebar, setSelectedNode]);
+  }, [nodeForPlacement, viewport, selectedWorkflowId, createNode, setNodes, setNodeForPlacement, setOpenRightSidebar, setSelectedNode]);
 
   const handleDrop = useCallback(async (event: React.DragEvent, reactFlowWrapper: React.RefObject<HTMLDivElement | null>) => {
     event.preventDefault();

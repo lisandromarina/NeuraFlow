@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import ThemeModeToggle from "../ui/ThemeModeToggle";
 import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/components/ui/sidebar";
 
 import {
   Sidebar,
@@ -89,7 +91,9 @@ export function AppSidebar({
   onWorkflowToggle
 }: AppSidebarProps) {
   const { logout } = useAuth();
-  const { selectedWorkflowId, setSelectedWorkflowId } = useWorkflow();
+  const { selectedWorkflowId, setSelectedWorkflowId, setNodeForPlacement } = useWorkflow();
+  const isMobile = useIsMobile();
+  const { setOpenMobile } = useSidebar();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -153,6 +157,19 @@ export function AppSidebar({
       })
     );
     event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleNodeClick = (node: Node) => {
+    // On mobile, use tap-to-place instead of drag-and-drop
+    if (isMobile) {
+      setNodeForPlacement({
+        type: node.type,
+        category: node.category,
+        title: node.title,
+        id: node.id
+      });
+      setOpenMobile(false); // Close the sidebar
+    }
   };
 
   const selectedWorkflow = workflows.find((wf) => wf.id === selectedWorkflowId);
@@ -303,9 +320,12 @@ export function AppSidebar({
                   <SidebarMenuItem key={node.id}>
                   <SidebarMenuButton asChild>
                     <div
-                      draggable
+                      draggable={!isMobile}
                       onDragStart={(e) => onDragStart(e, node)}
-                      className="flex items-center gap-2 p-2 cursor-move hover:bg-primary/10 hover:border-l-2 hover:border-l rounded transition-all"
+                      onClick={() => handleNodeClick(node)}
+                      className={`flex items-center gap-2 p-2 hover:bg-primary/10 hover:border-l-2 hover:border-l-primary rounded transition-all ${
+                        isMobile ? 'cursor-pointer' : 'cursor-move'
+                      }`}
                     >
                       <span>{node.title}</span>
                     </div>
