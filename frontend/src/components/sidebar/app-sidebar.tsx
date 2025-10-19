@@ -206,8 +206,8 @@ export function AppSidebar({
                           key={wf.id}
                           className={`group flex items-center gap-2 rounded-md py-1.5 text-sm cursor-pointer transition-all ${
                             wf.id === selectedWorkflowId 
-                              ? 'bg-primary/10 border-l-2 border-l-primary pl-2 pr-2 shadow-sm' 
-                              : 'hover:bg-accent/50 border-l-2 border-l-transparent px-2'
+                              ? 'bg-primary/10  pl-2 pr-2 shadow-sm' 
+                              : 'hover:bg-accent/50  px-2'
                           }`}
                           onClick={() => setSelectedWorkflowId(wf.id)}
                         >
@@ -305,7 +305,7 @@ export function AppSidebar({
                     <div
                       draggable
                       onDragStart={(e) => onDragStart(e, node)}
-                      className="flex items-center gap-2 p-2 cursor-move hover:bg-primary/10 hover:border-l-2 hover:border-l-primary rounded transition-all"
+                      className="flex items-center gap-2 p-2 cursor-move hover:bg-primary/10 hover:border-l-2 hover:border-l rounded transition-all"
                     >
                       <span>{node.title}</span>
                     </div>
