@@ -20,3 +20,6 @@ class UserService:
         if not user or not verify_password(password, user.password):
             raise HTTPException(status_code=401, detail="Invalid email or password")
         return user
+
+    def get_user_by_email(self, email: str) -> UserDB | None:
+        return self.user_repo.get_by_email(email)

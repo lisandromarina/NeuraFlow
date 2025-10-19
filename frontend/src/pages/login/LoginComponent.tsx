@@ -17,6 +17,11 @@ interface LoginComponentProps {
 }
 
 export default function LoginComponent({ handleSubmit, handleChange }: LoginComponentProps) {
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = "http://localhost:8000/auth/google/login";
+  };
+
   return (
     <div className="w-full h-screen flex items-center justify-center bg-secondary">
       <Card className="w-full max-w-sm">
@@ -66,7 +71,12 @@ export default function LoginComponent({ handleSubmit, handleChange }: LoginComp
             <Button type="submit" className="w-full">
               Sign in
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              type="button"
+              onClick={handleGoogleLogin}
+            >
               Sign in with Google
             </Button>
             <div className="text-center text-sm text-muted-foreground">

@@ -17,6 +17,11 @@ interface RegisterComponentProps {
 }
 
 export default function RegisterComponent({ handleSubmit, handleChange }: RegisterComponentProps) {
+  const handleGoogleSignup = () => {
+    // Same OAuth endpoint as login - backend handles both cases
+    window.location.href = "http://localhost:8000/auth/google/login";
+  };
+
   return (
     <div className="w-full h-screen flex items-center justify-center bg-secondary">
       <Card className="w-full max-w-sm">
@@ -70,7 +75,12 @@ export default function RegisterComponent({ handleSubmit, handleChange }: Regist
             <Button type="submit" className="w-full">
               Create Account
             </Button>
-            <Button variant="outline" className="w-full" type="button">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              type="button"
+              onClick={handleGoogleSignup}
+            >
               Sign up with Google
             </Button>
             <div className="text-center text-sm text-muted-foreground">
