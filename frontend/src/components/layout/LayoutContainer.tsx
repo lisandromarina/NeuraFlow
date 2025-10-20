@@ -136,6 +136,12 @@ const LayoutContainer: React.FC = () => {
 
   // Delete workflow
   const handleDeleteWorkflow = async (id: number) => {
+    // Prevent deleting the last workflow
+    if (workflows.length <= 1) {
+      toast.error("Cannot delete the last workflow. At least one workflow must exist.");
+      return;
+    }
+
     try {
       await callApi(`/workflow/${id}`, "DELETE");
       toast.success("Workflow deleted successfully!");

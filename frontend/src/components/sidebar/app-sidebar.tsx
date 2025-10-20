@@ -276,9 +276,13 @@ export function AppSidebar({
                                 <DropdownMenuItem 
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (workflows.length <= 1) {
+                                      return; // Prevent opening dialog if only 1 workflow
+                                    }
                                     setIsDeleteDialogOpen(true);
                                   }}
                                   className="text-destructive focus:text-destructive"
+                                  disabled={workflows.length <= 1}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Delete
