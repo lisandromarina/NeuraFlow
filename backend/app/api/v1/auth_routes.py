@@ -2,8 +2,9 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Depends, HTTPException, Header # type: ignore
 from fastapi.responses import RedirectResponse # type: ignore
-from dependencies import get_user_repository
+from dependencies import get_user_repository, get_workflow_repository
 from repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
+from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from services.user_service import UserService
 from models.schemas.user import UserCreate, UserRead
 from datetime import datetime, timedelta
@@ -24,9 +25,10 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # ✅ Use the repository dependency you already defined
 def get_user_service(
-    repo: SqlAlchemyUserRepository = Depends(get_user_repository)
+    user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
+    workflow_repo: SqlAlchemyWorkflowRepository = Depends(get_workflow_repository)
 ) -> UserService:
-    return UserService(repo)
+    return UserService(user_repo, workflow_repo)
 
 @router.post("/register", response_model=UserRead)
 def register(user: UserCreate, service: UserService = Depends(get_user_service)):
