@@ -13,8 +13,9 @@ import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { CheckCircle2, CircleDot, Save, Settings2, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleDot, Save, Settings2, Trash2, Link } from "lucide-react";
 import { Separator } from "../ui/separator";
+import LinkDialogContainer from "../link-dialog";
 
 // -------------------- Type Definitions --------------------
 
@@ -65,6 +66,7 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
 
   const [values, setValues] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
   // Sync mobile state with desktop state when open changes
   useEffect(() => {
@@ -384,7 +386,16 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
         </div>
 
         {/* Footer with Save Button */}
-        <div className="sticky bottom-0 bg-background border-t p-4">
+        <div className="sticky bottom-0 bg-background border-t p-4 space-y-3">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            size="default"
+            onClick={() => setLinkDialogOpen(true)}
+          >
+            <Link className="w-4 h-4 mr-2" />
+            Link Parent Values
+          </Button>
           <Button 
             onClick={handleSubmit} 
             className="w-full"
@@ -395,6 +406,14 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
           </Button>
         </div>
       </SidebarContent>
+      
+      {/* Link Dialog */}
+      <LinkDialogContainer
+        nodeId={node?.id || null}
+        nodeName={node?.name || ''}
+        isOpen={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+      />
     </Sidebar>
   );
 }
