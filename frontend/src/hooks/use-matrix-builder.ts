@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 
-export const useMatrixBuilder = (initialRows = 2, initialColumns = 2) => {
+export const useMatrixBuilder = (initialRows = 2, initialColumns = 2, initialData?: { matrix?: (string | object)[][], columns?: string[] }) => {
   const [matrix, setMatrix] = useState<(string | object)[][]>(
-    Array.from({ length: initialRows }, () => Array.from({ length: initialColumns }, () => ''))
+    initialData?.matrix || Array.from({ length: initialRows }, () => Array.from({ length: initialColumns }, () => ''))
   );
   const [columns, setColumns] = useState<string[]>(
-    Array.from({ length: initialColumns }, (_, i) => `Column ${i + 1}`)
+    initialData?.columns || Array.from({ length: initialColumns }, (_, i) => `Column ${i + 1}`)
   );
 
   const addRow = useCallback(() => {

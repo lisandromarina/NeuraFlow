@@ -186,5 +186,6 @@ class WorkflowNodeService:
             "inputs": inputs,
             "outputs": outputs,
             "credentials": credentials,
-            "hasCredentials": hasCred
+            "hasCredentials": hasCred,
+            "linkable_fields": config_metadata.get("linkable_fields", [])
         }

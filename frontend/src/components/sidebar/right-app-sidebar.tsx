@@ -41,13 +41,21 @@ export interface NodeCredentials {
   scopes?: string[];
 }
 
+export interface LinkableField {
+  field_name: string;
+  component: string;
+  label: string;
+  show_if?: Record<string, any[]>;
+}
+
 export interface NodeType {
   id: number;
   name: string;
   node_type?: string;
   credentials?: NodeCredentials;
   inputs: NodeInput[];
-  hasCredentials: boolean
+  hasCredentials: boolean;
+  linkable_fields?: LinkableField[];
 }
 
 // -------------------- Props --------------------
@@ -67,6 +75,7 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
   const [values, setValues] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [selectedLinkableField, setSelectedLinkableField] = useState<LinkableField | null>(null);
 
   // Sync mobile state with desktop state when open changes
   useEffect(() => {
@@ -145,8 +154,51 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
     return groups;
   }, [visibleInputs]);
 
+  // Compute visible linkable fields based on `show_if` conditions
+  const visibleLinkableFields = useMemo(() => {
+    if (!node?.linkable_fields) return [];
+    
+    return node.linkable_fields.filter((linkableField) => {
+      // If no show_if condition, always show the linkable field
+      if (!linkableField.show_if) return true;
+      
+      // Check all show_if conditions
+      return Object.entries(linkableField.show_if).every(([key, allowedValues]) => {
+        // Get the current value from the state first
+        let currentValue = values[key];
+        
+        // If not in state, check the input definition
+        if (currentValue === undefined || currentValue === null || currentValue === "") {
+          const inputDef = node.inputs.find((i) => i.name === key);
+          currentValue = inputDef?.value;
+          if (currentValue === undefined || currentValue === null || currentValue === "") {
+            currentValue = inputDef?.default;
+          }
+        }
+        
+        // Handle empty/null/undefined values
+        if (currentValue === undefined || currentValue === null || currentValue === "") {
+          return false;
+        }
+        
+        return allowedValues.includes(currentValue);
+      });
+    });
+  }, [node, values]);
+
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveMatrixData = (fieldName: string, matrixData: { columns: string[], values: (string | object)[][] }) => {
+    // Extract just the values array (2D array) for the form field
+    const valuesArray = matrixData.values;
+    
+    // Update the form field using handleChange
+    handleChange(fieldName, valuesArray);
+    
+    // Show success message
+    toast.success(`Matrix data saved to ${fieldName} field`);
   };
 
   const handleConnect = () => {
@@ -387,15 +439,21 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
 
         {/* Footer with Save Button */}
         <div className="sticky bottom-0 bg-background border-t p-4 space-y-3">
-          <Button 
-            variant="outline" 
-            className="w-full"
-            size="default"
-            onClick={() => setLinkDialogOpen(true)}
-          >
-            <Link className="w-4 h-4 mr-2" />
-            Link Parent Values
-          </Button>
+          {visibleLinkableFields.length > 0 && (
+            <Button 
+              variant="outline" 
+              className="w-full"
+              size="default"
+              onClick={() => {
+                // Select the first visible linkable field
+                setSelectedLinkableField(visibleLinkableFields[0]);
+                setLinkDialogOpen(true);
+              }}
+            >
+              <Link className="w-4 h-4 mr-2" />
+              Link {visibleLinkableFields[0]?.label || 'Parent Values'}
+            </Button>
+          )}
           <Button 
             onClick={handleSubmit} 
             className="w-full"
@@ -413,6 +471,8 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
         nodeName={node?.name || ''}
         isOpen={linkDialogOpen}
         onOpenChange={setLinkDialogOpen}
+        linkableField={selectedLinkableField}
+        onSaveMatrixData={handleSaveMatrixData}
       />
     </Sidebar>
   );

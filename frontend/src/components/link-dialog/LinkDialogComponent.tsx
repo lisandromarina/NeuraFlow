@@ -16,6 +16,7 @@ import { Link, Search, Info, HelpCircle, Download, Upload } from 'lucide-react';
 import JSONNode from '../ui/JSONNode';
 import MatrixBuilder from '../ui/matrix_builder';
 import type { ParentNode } from './LinkDialogContainer';
+import type { LinkableField } from './LinkDialogContainer';
 
 interface LinkDialogComponentProps {
   nodeId: number | null;
@@ -34,6 +35,7 @@ interface LinkDialogComponentProps {
   onUpdateCell?: (rowIndex: number, colIndex: number, value: string) => void;
   onUpdateColumn?: (colIndex: number, newName: string) => void;
   onSaveLinks?: (matrixData: { columns: string[], values: (string | object)[][] }) => void;
+  linkableField: LinkableField | null;
 }
 
 const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
@@ -53,6 +55,7 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
   onUpdateCell,
   onUpdateColumn,
   onSaveLinks,
+  linkableField,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNodeType, setSelectedNodeType] = useState<string>('all');
@@ -107,9 +110,17 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
           <DialogTitle className="flex items-center gap-2">
             <Link className="h-5 w-5" />
             Link Parent Values to {nodeName}
+            {linkableField && (
+              <Badge variant="outline" className="ml-2">
+                {linkableField.label}
+              </Badge>
+            )}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Drag values from parent nodes and drop them into the matrix below. You can also edit cells directly.
+            {linkableField 
+              ? `Configure the ${linkableField.label} field by dragging values from parent nodes. Component: ${linkableField.component}`
+              : 'Drag values from parent nodes and drop them into the matrix below. You can also edit cells directly.'
+            }
           </p>
         </DialogHeader>
 
@@ -194,11 +205,18 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
                   </div>
                 </div>
 
-                {/* Matrix Builder Panel */}
+                {/* Dynamic Component Panel */}
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium">Target Matrix</h3>
+                    <h3 className="text-sm font-medium">
+                      {linkableField?.label || 'Target Matrix'}
+                    </h3>
                     <div className="flex items-center gap-2">
+                      {linkableField && (
+                        <Badge variant="secondary" className="text-xs">
+                          {linkableField.component}
+                        </Badge>
+                      )}
                       <Badge variant="outline" className="text-xs">
                         {filledCells}/{totalCells} filled
                       </Badge>
@@ -209,17 +227,29 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
                   </div>
                   
                   <div className="flex-1">
-                    <MatrixBuilder
-                      matrix={matrix}
-                      columns={columns}
-                      onDropCell={onDropCell}
-                      addRow={addRow}
-                      removeRow={removeRow}
-                      addColumn={addColumn}
-                      removeColumn={removeColumn}
-                      onUpdateCell={onUpdateCell}
-                      onUpdateColumn={onUpdateColumn}
-                    />
+                    {/* Render component based on type - currently only matrixbuilder is supported */}
+                    {(!linkableField || linkableField.component === 'matrixbuilder') ? (
+                      <MatrixBuilder
+                        matrix={matrix}
+                        columns={columns}
+                        onDropCell={onDropCell}
+                        addRow={addRow}
+                        removeRow={removeRow}
+                        addColumn={addColumn}
+                        removeColumn={removeColumn}
+                        onUpdateCell={onUpdateCell}
+                        onUpdateColumn={onUpdateColumn}
+                      />
+                    ) : (
+                      <Card className="h-full flex items-center justify-center">
+                        <CardContent className="text-center">
+                          <Info className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            Component type "{linkableField.component}" not yet implemented
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </div>
               </div>

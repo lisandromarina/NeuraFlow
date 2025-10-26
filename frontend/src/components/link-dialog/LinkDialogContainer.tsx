@@ -3,11 +3,20 @@ import { toast } from 'sonner';
 import LinkDialogComponent from './LinkDialogComponent';
 import { useMatrixBuilder } from '../../hooks/use-matrix-builder.ts';
 
+export interface LinkableField {
+  field_name: string;
+  component: string;
+  label: string;
+  show_if?: Record<string, any[]>;
+}
+
 export interface LinkDialogContainerProps {
   nodeId: number | null;
   nodeName: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  linkableField: LinkableField | null;
+  onSaveMatrixData?: (fieldName: string, matrixData: { columns: string[], values: (string | object)[][] }) => void;
 }
 
 export interface ParentNode {
@@ -22,6 +31,8 @@ const LinkDialogContainer: React.FC<LinkDialogContainerProps> = ({
   nodeName,
   isOpen,
   onOpenChange,
+  linkableField,
+  onSaveMatrixData,
 }) => {
   const [parentNodes, setParentNodes] = useState<ParentNode[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +79,12 @@ const LinkDialogContainer: React.FC<LinkDialogContainerProps> = ({
     if (isOpen && nodeId) fetchParentNodes();
   }, [isOpen, nodeId, fetchParentNodes]);
 
+  const handleSaveMatrixData = (matrixData: { columns: string[], values: (string | object)[][] }) => {
+    if (linkableField && onSaveMatrixData) {
+      onSaveMatrixData(linkableField.field_name, matrixData);
+    }
+  };
+
   return (
     <LinkDialogComponent
       nodeId={nodeId}
@@ -85,6 +102,8 @@ const LinkDialogContainer: React.FC<LinkDialogContainerProps> = ({
       removeColumn={removeColumn}
       onUpdateCell={updateCell}
       onUpdateColumn={updateColumn}
+      linkableField={linkableField}
+      onSaveLinks={handleSaveMatrixData}
     />
   );
 };
