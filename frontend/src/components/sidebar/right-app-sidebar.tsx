@@ -48,6 +48,19 @@ export interface LinkableField {
   show_if?: Record<string, any[]>;
 }
 
+export interface ParentOutput {
+  name: string;
+  type: string;
+  description: string;
+}
+
+export interface ParentNode {
+  parent_id: number;
+  parent_name: string;
+  parent_node_type: string;
+  outputs: ParentOutput[];
+}
+
 export interface NodeType {
   id: number;
   name: string;
@@ -56,6 +69,7 @@ export interface NodeType {
   inputs: NodeInput[];
   hasCredentials: boolean;
   linkable_fields?: LinkableField[];
+  parents_outputs?: ParentNode[];
 }
 
 // -------------------- Props --------------------
@@ -188,17 +202,6 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
 
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveMatrixData = (fieldName: string, matrixData: { columns: string[], values: (string | object)[][] }) => {
-    // Extract just the values array (2D array) for the form field
-    const valuesArray = matrixData.values;
-    
-    // Update the form field using handleChange
-    handleChange(fieldName, valuesArray);
-    
-    // Show success message
-    toast.success(`Matrix data saved to ${fieldName} field`);
   };
 
   const handleConnect = () => {
@@ -472,7 +475,7 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
         isOpen={linkDialogOpen}
         onOpenChange={setLinkDialogOpen}
         linkableField={selectedLinkableField}
-        onSaveMatrixData={handleSaveMatrixData}
+        parentsOutputs={node?.parents_outputs || []}
       />
     </Sidebar>
   );

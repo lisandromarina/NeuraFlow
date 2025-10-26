@@ -15,7 +15,7 @@ import { Badge } from '../ui/badge';
 import { Link, Search, Info, HelpCircle, Download, Upload } from 'lucide-react';
 import JSONNode from '../ui/JSONNode';
 import MatrixBuilder from '../ui/matrix_builder';
-import type { ParentNode } from './LinkDialogContainer';
+import type { DisplayParentNode } from './LinkDialogContainer';
 import type { LinkableField } from './LinkDialogContainer';
 
 interface LinkDialogComponentProps {
@@ -23,7 +23,7 @@ interface LinkDialogComponentProps {
   nodeName: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  parentNodes: ParentNode[];
+  parentNodes: DisplayParentNode[];
   loading: boolean;
   matrix: (string | object)[][];
   columns: string[];
