@@ -58,7 +58,9 @@ const MatrixBuilder: React.FC<MatrixBuilderProps> = ({
       const data = e.dataTransfer.getData('application/json');
       if (data) {
         const parsed = JSON.parse(data);
-        onDropCell(rowIndex, colIndex, parsed.currentValue || parsed);
+        // Use templateValue if available, otherwise use currentValue or the parsed object
+        const value = parsed.templateValue || parsed.currentValue || parsed;
+        onDropCell(rowIndex, colIndex, value);
       } else {
         const text = e.dataTransfer.getData('text');
         onDropCell(rowIndex, colIndex, text);
@@ -240,7 +242,11 @@ const MatrixBuilder: React.FC<MatrixBuilderProps> = ({
                       <div className="flex items-center gap-2 w-full">
                         {cell ? (
                           <span className="truncate flex-1">
-                            {typeof cell === 'string' ? cell : JSON.stringify(cell, null, 2)}
+                            {typeof cell === 'string' ? (
+                              cell.startsWith('{{') && cell.endsWith('}}') ? (
+                                <span className="text-blue-600 font-mono text-xs">{cell}</span>
+                              ) : cell
+                            ) : JSON.stringify(cell, null, 2)}
                           </span>
                         ) : (
                           <span className="text-muted-foreground text-xs">Drop value here</span>

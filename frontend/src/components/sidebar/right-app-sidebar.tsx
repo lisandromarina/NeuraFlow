@@ -50,8 +50,10 @@ export interface LinkableField {
 
 export interface ParentOutput {
   name: string;
+  label: string;
   type: string;
   description: string;
+  schema?: Record<string, any>;
 }
 
 export interface ParentNode {
@@ -202,6 +204,10 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
 
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveLinks = (links: Record<string, any>) => {
+    setValues((prev) => ({ ...prev, ...links }));
   };
 
   const handleConnect = () => {
@@ -476,6 +482,8 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
         onOpenChange={setLinkDialogOpen}
         linkableField={selectedLinkableField}
         parentsOutputs={node?.parents_outputs || []}
+        currentConfig={values}
+        onSaveLinks={handleSaveLinks}
       />
     </Sidebar>
   );

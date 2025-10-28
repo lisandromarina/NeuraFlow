@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,17 +13,15 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Link, Search, Info, HelpCircle, Download, Upload } from 'lucide-react';
-import JSONNode from '../ui/JSONNode';
 import MatrixBuilder from '../ui/matrix_builder';
-import type { DisplayParentNode } from './LinkDialogContainer';
-import type { LinkableField } from './LinkDialogContainer';
+import type { ParentNode, LinkableField } from './LinkDialogContainer';
 
 interface LinkDialogComponentProps {
   nodeId: number | null;
   nodeName: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  parentNodes: DisplayParentNode[];
+  parentNodes: ParentNode[];
   loading: boolean;
   matrix: (string | object)[][];
   columns: string[];
@@ -34,8 +32,16 @@ interface LinkDialogComponentProps {
   removeColumn: (colIndex: number) => void;
   onUpdateCell?: (rowIndex: number, colIndex: number, value: string) => void;
   onUpdateColumn?: (colIndex: number, newName: string) => void;
-  onSaveLinks?: (matrixData: { columns: string[], values: (string | object)[][] }) => void;
+  onSaveLinks?: () => void;
   linkableField: LinkableField | null;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  selectedNodeType: string;
+  setSelectedNodeType: (type: string) => void;
+  nodeTypes: string[];
+  renderNestedProperties: (schema: Record<string, any>, parentPath?: string, depth?: number, nodeId?: number, nodeName?: string) => React.ReactElement[];
+  filledCells: number;
+  totalCells: number;
 }
 
 const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
@@ -56,56 +62,20 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
   onUpdateColumn,
   onSaveLinks,
   linkableField,
+  searchTerm,
+  setSearchTerm,
+  selectedNodeType,
+  setSelectedNodeType,
+  nodeTypes,
+  renderNestedProperties,
+  filledCells,
+  totalCells,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNodeType, setSelectedNodeType] = useState<string>('all');
-
   if (!nodeId) return null;
-
-  // Filter parent nodes based on search and type
-  const filteredParentNodes = useMemo(() => {
-    return parentNodes.filter(node => {
-      const matchesSearch = searchTerm === '' || 
-        node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        node.node_type.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesType = selectedNodeType === 'all' || node.node_type === selectedNodeType;
-      
-      return matchesSearch && matchesType;
-    });
-  }, [parentNodes, searchTerm, selectedNodeType]);
-
-  const nodeTypes = useMemo(() => {
-    const types = [...new Set(parentNodes.map(node => node.node_type))];
-    return ['all', ...types];
-  }, [parentNodes]);
-
-  const filledCells = useMemo(() => {
-    return matrix.flat().filter(cell => {
-      if (typeof cell === 'string') return cell.trim() !== '';
-      if (typeof cell === 'object' && cell !== null) return Object.keys(cell).length > 0;
-      return false;
-    }).length;
-  }, [matrix]);
-  
-
-  const totalCells = matrix.length * columns.length;
-
-  const handleSaveLinks = () => {
-    if (onSaveLinks) {
-      // Prepare the matrix data for Google Sheets format
-      const matrixData = {
-        columns: columns,
-        values: matrix
-      };
-      onSaveLinks(matrixData);
-    }
-    onOpenChange(false);
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="h-5 w-5" />
@@ -124,7 +94,7 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
           </p>
         </DialogHeader>
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
             {loading ? (
               <div className="space-y-3 flex-1">
                 <Skeleton className="h-20 w-full" />
@@ -140,12 +110,12 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
                 {/* Parent Nodes Panel */}
-                <div className="flex flex-col">
+                <div className="flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-medium">Parent Nodes</h3>
-                    <Badge variant="secondary">{filteredParentNodes.length} nodes</Badge>
+                    <Badge variant="secondary">{parentNodes.length} nodes</Badge>
                   </div>
                   
                   {/* Search and Filter Controls */}
@@ -177,26 +147,60 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
 
                   {/* Parent Nodes List */}
                   <div className="flex-1 overflow-y-auto border rounded-lg p-3 bg-muted/5 space-y-3">
-                    {filteredParentNodes.map((node) => (
-                      <Card key={node.id} className="hover:shadow-md transition-shadow">
+                    {parentNodes.map((node) => (
+                      <Card key={node.parent_id} className="hover:shadow-md transition-shadow">
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">{node.name}</CardTitle>
+                            <CardTitle className="text-base">{node.parent_name}</CardTitle>
                             <Badge variant="outline" className="text-xs">
-                              {node.node_type}
+                              {node.parent_node_type}
                             </Badge>
                           </div>
                           <CardDescription className="text-xs">
-                            Node ID: {node.id}
+                            Node ID: {node.parent_id}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <JSONNode data={node.currentValue} nodeId={node.id} nodeName={node.name} />
+                          <div className="space-y-2">
+                            {node.outputs.map((output) => (
+                              <div key={output.name} className="space-y-1">
+                                <div className="text-sm font-medium text-foreground">
+                                  {output.label || output.name}
+                                </div>
+                                {output.type === 'object' && output.schema ? (
+                                  <div className="ml-2 space-y-1">
+                                    {renderNestedProperties(output.schema, output.name, 0, node.parent_id, node.parent_name)}
+                                  </div>
+                                ) : (
+                                  <div
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.stopPropagation();
+                                      e.dataTransfer.setData(
+                                        'application/json',
+                                        JSON.stringify({
+                                          nodeId: node.parent_id,
+                                          nodeName: node.parent_name,
+                                          fieldName: output.name,
+                                          fieldType: output.type,
+                                          templateValue: `{{ parent_${node.parent_id}_result.${output.name} }}`
+                                        })
+                                      );
+                                      e.dataTransfer.effectAllowed = 'copy';
+                                    }}
+                                    className="cursor-grab px-2 py-1 rounded hover:bg-accent/20 text-xs font-medium bg-background border"
+                                  >
+                                    {output.name} ({output.type})
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                     
-                    {filteredParentNodes.length === 0 && searchTerm && (
+                    {parentNodes.length === 0 && searchTerm && (
                       <div className="text-center py-8 text-muted-foreground">
                         <Search className="h-8 w-8 mx-auto mb-2" />
                         <div className="text-sm">No nodes found matching "{searchTerm}"</div>
@@ -206,7 +210,7 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
                 </div>
 
                 {/* Dynamic Component Panel */}
-                <div className="flex flex-col">
+                <div className="flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-medium">
                       {linkableField?.label || 'Target Matrix'}
@@ -226,7 +230,7 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
                     </div>
                   </div>
                   
-                  <div className="flex-1">
+                  <div className="flex-1 overflow-auto">
                     {/* Render component based on type - currently only matrixbuilder is supported */}
                     {(!linkableField || linkableField.component === 'matrixbuilder') ? (
                       <MatrixBuilder
@@ -278,7 +282,7 @@ const LinkDialogComponent: React.FC<LinkDialogComponentProps> = ({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveLinks}>
+            <Button onClick={onSaveLinks}>
               Save Links
             </Button>
           </div>
