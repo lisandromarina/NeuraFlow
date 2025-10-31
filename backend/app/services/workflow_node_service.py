@@ -10,6 +10,7 @@ from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCre
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
+from repositories.sqlalchemy_workflow_connection_repository import SqlAlchemyWorkflowConnectionRepository
 from redis import Redis # type: ignore
 from models.db_models.node_db import Node
 from utils.token_security import decrypt_credentials
@@ -22,12 +23,14 @@ class WorkflowNodeService:
             workflow_repo: SqlAlchemyWorkflowRepository,
             credentials_repo: SqlAlchemyUserCredentialRepository,
             redis_service: RedisService,
+            workflow_connection_repo: SqlAlchemyWorkflowConnectionRepository,
         ):
         self.workflow_node_repo = workflow_node_repo
         self.node_repo = node_repo 
         self.workflow_repo = workflow_repo
         self.credentials_repo = credentials_repo
         self.redis_service = redis_service
+        self.workflow_connection_repo = workflow_connection_repo
 
 
     # ------------------------
@@ -39,6 +42,42 @@ class WorkflowNodeService:
     def list_nodes_for_workflow(self, workflow_id: int) -> List[WorkflowNodeSchema]:
         aux = self.workflow_node_repo.list_by_workflow(workflow_id)
         return aux
+
+    def get_parent_outputs(self, workflow_node_id: int) -> List[dict]:
+        """
+        Get parent nodes and their outputs for a given workflow node.
+        Returns a list of parent nodes with their output metadata.
+        """
+        # Get all connections for this workflow
+        workflow_node = self.workflow_node_repo.get_by_id(workflow_node_id)
+        if not workflow_node:
+            return []
+        
+        connections = self.workflow_connection_repo.list_by_workflow_id(workflow_node.workflow_id)
+        
+        # Find parent nodes (nodes that connect TO this node)
+        parent_node_ids = []
+        for connection in connections:
+            if connection.to_step_id == workflow_node_id:
+                parent_node_ids.append(connection.from_step_id)
+        
+        # Get parent nodes and their output metadata
+        parent_outputs = []
+        for parent_id in parent_node_ids:
+            parent_workflow_node = self.workflow_node_repo.get_by_id(parent_id)
+            if parent_workflow_node:
+                parent_node = self.node_repo.get_node(parent_workflow_node.node_id)
+                if parent_node:
+                    config_metadata = parent_node.config_metadata or {}
+                    outputs = config_metadata.get("outputs", [])
+                    parent_outputs.append({
+                        "parent_id": parent_id,
+                        "parent_name": parent_workflow_node.name,
+                        "parent_node_type": parent_node.type,
+                        "outputs": outputs
+                    })
+        
+        return parent_outputs
 
     # ------------------------
     # Create
@@ -176,6 +215,9 @@ class WorkflowNodeService:
                 if metadata_set.issubset(scope_list):
                     hasCred = True
 
+        # Get parent outputs
+        parents_outputs = self.get_parent_outputs(workflow_node_id)
+
         return {
             "id": workflow_node.id,
             "name": node.name,
@@ -186,5 +228,7 @@ class WorkflowNodeService:
             "inputs": inputs,
             "outputs": outputs,
             "credentials": credentials,
-            "hasCredentials": hasCred
+            "hasCredentials": hasCred,
+            "linkable_fields": config_metadata.get("linkable_fields", []),
+            "parents_outputs": parents_outputs
         }

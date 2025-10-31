@@ -172,7 +172,7 @@ class GoogleSheetsExecutor:
     def _append_or_update(sheets, config, logger):
         spreadsheet_id = GoogleSheetsExecutor._extract_spreadsheet_id(config)
         range_name = config["range"]
-        new_row = config["values"][0]
+        rows = config["values"]
         key_column = config.get("key_column", 0)
 
         # Fetch all current values
@@ -180,29 +180,34 @@ class GoogleSheetsExecutor:
             spreadsheetId=spreadsheet_id, range=range_name
         ).execute().get("values", [])
 
-        found_index = None
-        for i, row in enumerate(existing):
-            if len(row) > key_column and row[key_column] == new_row[key_column]:
-                found_index = i
-                break
+        responses = []
+        for new_row in rows:
+            found_index = None
+            for i, row in enumerate(existing):
+                if len(row) > key_column and row[key_column] == new_row[key_column]:
+                    found_index = i
+                    break
 
-        if found_index is not None:
-            update_range = f"{range_name.split('!')[0]}!A{found_index + 1}"
-            logger.log(f"Updating existing row {found_index + 1}")
-            return sheets.values().update(
-                spreadsheetId=spreadsheet_id,
-                range=update_range,
-                valueInputOption="RAW",
-                body={"values": [new_row]},
-            ).execute()
-        else:
-            logger.log("Appending new row at the end of the sheet")
-            return sheets.values().append(
-                spreadsheetId=spreadsheet_id,
-                range=range_name,
-                valueInputOption="RAW",
-                body={"values": [new_row]},
-            ).execute()
+            if found_index is not None:
+                update_range = f"{range_name.split('!')[0]}!A{found_index + 1}"
+                logger.log(f"Updating existing row {found_index + 1}")
+                resp = sheets.values().update(
+                    spreadsheetId=spreadsheet_id,
+                    range=update_range,
+                    valueInputOption="RAW",
+                    body={"values": [new_row]},
+                ).execute()
+            else:
+                logger.log(f"Appending new row: {new_row}")
+                resp = sheets.values().append(
+                    spreadsheetId=spreadsheet_id,
+                    range=range_name,
+                    valueInputOption="RAW",
+                    body={"values": [new_row]},
+                ).execute()
+
+            responses.append(resp)
+        return responses
 
     @staticmethod
     def _delete_rows_or_columns(sheets, config):

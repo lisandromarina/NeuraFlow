@@ -143,6 +143,20 @@
         "label": "Google Sheets API Response",
         "type": "json"
       }
+    ],
+    "linkable_fields": [
+      {
+        "field_name": "values",
+        "component": "matrixbuilder",
+        "label": "Values",
+        "show_if": {
+          "operation": [
+            "append_row",
+            "update_row",
+            "append_or_update"
+          ]
+        }
+      }
     ]
   }
 }

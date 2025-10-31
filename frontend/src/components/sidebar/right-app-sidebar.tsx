@@ -13,8 +13,9 @@ import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { CheckCircle2, CircleDot, Save, Settings2, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleDot, Save, Settings2, Trash2, Link } from "lucide-react";
 import { Separator } from "../ui/separator";
+import LinkDialogContainer from "../link-dialog";
 
 // -------------------- Type Definitions --------------------
 
@@ -40,13 +41,37 @@ export interface NodeCredentials {
   scopes?: string[];
 }
 
+export interface LinkableField {
+  field_name: string;
+  component: string;
+  label: string;
+  show_if?: Record<string, any[]>;
+}
+
+export interface ParentOutput {
+  name: string;
+  label: string;
+  type: string;
+  description: string;
+  schema?: Record<string, any>;
+}
+
+export interface ParentNode {
+  parent_id: number;
+  parent_name: string;
+  parent_node_type: string;
+  outputs: ParentOutput[];
+}
+
 export interface NodeType {
   id: number;
   name: string;
   node_type?: string;
   credentials?: NodeCredentials;
   inputs: NodeInput[];
-  hasCredentials: boolean
+  hasCredentials: boolean;
+  linkable_fields?: LinkableField[];
+  parents_outputs?: ParentNode[];
 }
 
 // -------------------- Props --------------------
@@ -65,6 +90,8 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
 
   const [values, setValues] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [selectedLinkableField, setSelectedLinkableField] = useState<LinkableField | null>(null);
 
   // Sync mobile state with desktop state when open changes
   useEffect(() => {
@@ -143,8 +170,44 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
     return groups;
   }, [visibleInputs]);
 
+  // Compute visible linkable fields based on `show_if` conditions
+  const visibleLinkableFields = useMemo(() => {
+    if (!node?.linkable_fields) return [];
+    
+    return node.linkable_fields.filter((linkableField) => {
+      // If no show_if condition, always show the linkable field
+      if (!linkableField.show_if) return true;
+      
+      // Check all show_if conditions
+      return Object.entries(linkableField.show_if).every(([key, allowedValues]) => {
+        // Get the current value from the state first
+        let currentValue = values[key];
+        
+        // If not in state, check the input definition
+        if (currentValue === undefined || currentValue === null || currentValue === "") {
+          const inputDef = node.inputs.find((i) => i.name === key);
+          currentValue = inputDef?.value;
+          if (currentValue === undefined || currentValue === null || currentValue === "") {
+            currentValue = inputDef?.default;
+          }
+        }
+        
+        // Handle empty/null/undefined values
+        if (currentValue === undefined || currentValue === null || currentValue === "") {
+          return false;
+        }
+        
+        return allowedValues.includes(currentValue);
+      });
+    });
+  }, [node, values]);
+
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveLinks = (links: Record<string, any>) => {
+    setValues((prev) => ({ ...prev, ...links }));
   };
 
   const handleConnect = () => {
@@ -384,7 +447,22 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
         </div>
 
         {/* Footer with Save Button */}
-        <div className="sticky bottom-0 bg-background border-t p-4">
+        <div className="sticky bottom-0 bg-background border-t p-4 space-y-3">
+          {visibleLinkableFields.length > 0 && (
+            <Button 
+              variant="outline" 
+              className="w-full"
+              size="default"
+              onClick={() => {
+                // Select the first visible linkable field
+                setSelectedLinkableField(visibleLinkableFields[0]);
+                setLinkDialogOpen(true);
+              }}
+            >
+              <Link className="w-4 h-4 mr-2" />
+              Link {visibleLinkableFields[0]?.label || 'Parent Values'}
+            </Button>
+          )}
           <Button 
             onClick={handleSubmit} 
             className="w-full"
@@ -395,6 +473,18 @@ export function RightAppSidebar({ node, onNodeDelete }: RightAppSidebarProps) {
           </Button>
         </div>
       </SidebarContent>
+      
+      {/* Link Dialog */}
+      <LinkDialogContainer
+        nodeId={node?.id || null}
+        nodeName={node?.name || ''}
+        isOpen={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        linkableField={selectedLinkableField}
+        parentsOutputs={node?.parents_outputs || []}
+        currentConfig={values}
+        onSaveLinks={handleSaveLinks}
+      />
     </Sidebar>
   );
 }

@@ -30,6 +30,16 @@
         "type": "textarea",
         "required": false
       }
+    ],
+    "linkable_fields": [
+      {
+        "field_name": "body",
+        "component": "form",
+        "label": "Request Body",
+        "show_if": {
+          "method": ["POST", "PUT", "PATCH"]
+        }
+      }
     ]
   }
 }

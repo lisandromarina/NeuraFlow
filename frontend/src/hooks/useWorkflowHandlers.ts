@@ -52,6 +52,7 @@ export const useWorkflowHandlers = ({
   const handleNodeClick = useCallback(async (_: React.MouseEvent, node: WorkflowNodeType) => {
     const uiSchema = await safeApi(() => callApi(`/workflow-nodes/ui-schema/${node.id}`, "GET"));
     if (!uiSchema) return;
+    console.log(uiSchema);
     setSelectedNode(uiSchema);
     setOpenRightSidebar(true);
   }, [safeApi, callApi, setSelectedNode, setOpenRightSidebar]);
