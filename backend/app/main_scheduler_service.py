@@ -1,5 +1,6 @@
 import os
 from repositories.redis_repository import RedisRepository
+from services.redis_service import RedisService
 from services.scheduler_runner import SchedulerRunner
 from services.workflow_event_handler import WorkflowEventHandler
 from services.scheduler_service import SchedulerService
@@ -12,15 +13,15 @@ if not REDIS_URL:
 if __name__ == "__main__":
     # Redis repo
     redis_repo = RedisRepository(REDIS_URL)
-    print("Hello")
     # Core services
     scheduler_service = SchedulerService(redis_repo)
+    redis_service = RedisService(redis_repo.r)
     # event_click_service = EventClickService(...)  # optional for other categories
 
     # Node processor service (delegates nodes to the correct handler)
     node_processor_service = NodeProcessorService(
         scheduler_service=scheduler_service,
-        # event_service=event_click_service  # optional
+        redis_service=redis_service
     )
 
     # Workflow event handler

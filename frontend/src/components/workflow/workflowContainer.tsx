@@ -6,6 +6,7 @@ import BaseHandle from "../nodes/base-handler-demo";
 import { useWorkflow } from "@/context/WorkflowContext";
 import TriggerNode from "../nodes/trigger-node";
 import GoogleSheetsNode from "../nodes/google-sheet";
+import TelegramTriggerNode from "../nodes/telegram-trigger-node";
 import { useWorkflowNodes } from "../../hooks/useWorkflowNodes";
 import { useWorkflowHandlers } from "../../hooks/useWorkflowHandlers";
 
@@ -15,6 +16,7 @@ const nodeTypes: NodeTypes = {
   HttpNode: BaseHandle,
   SchedulerNode: TriggerNode,
   GoogleSheetsNode: GoogleSheetsNode,
+  TelegramTriggerNode: TelegramTriggerNode,
 };
 
 interface WorkflowContainerProps {

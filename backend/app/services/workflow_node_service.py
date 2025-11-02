@@ -13,7 +13,7 @@ from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_connection_repository import SqlAlchemyWorkflowConnectionRepository
 from redis import Redis # type: ignore
 from models.db_models.node_db import Node
-from utils.token_security import decrypt_credentials
+from utils.token_security import decrypt_credentials, encrypt_credentials
 
 class WorkflowNodeService:
     def __init__(
@@ -121,6 +121,23 @@ class WorkflowNodeService:
         for field, value in update_data.dict(exclude_unset=True).items():
             setattr(node, field, value)
 
+        # Handle special encryption for TelegramTriggerNode bot_token
+        db_node = self.node_repo.get_node(node.node_id)
+        if db_node and db_node.category == "TelegramTriggerNode" and node.custom_config:
+            node.custom_config = dict(node.custom_config)  # ensure it's mutable
+            # Encrypt bot_token if present
+            if "bot_token" in node.custom_config and node.custom_config["bot_token"]:
+                try:
+                    # Check if already encrypted (starts with eyJ which is base64 for encrypted JWE)
+                    bot_token = node.custom_config["bot_token"]
+                    if not bot_token.startswith("eyJ"):
+                        # Encrypt the token
+                        encrypted_token = encrypt_credentials({"token": bot_token})
+                        node.custom_config["bot_token"] = encrypted_token
+                        print(f"[WorkflowNodeService] Encrypted bot_token for node {node_id}")
+                except Exception as e:
+                    print(f"[WorkflowNodeService] Warning: Failed to encrypt bot_token: {e}")
+
         if workflow:
             if node.custom_config is None:
                 node.custom_config = {}
@@ -129,7 +146,6 @@ class WorkflowNodeService:
             node.custom_config["user_id"] = workflow.user_id
 
         updated_node = self.workflow_node_repo.update(node)
-        db_node = self.node_repo.get_node(node.node_id)
 
         # ✅ If workflow is active, notify scheduler
         if workflow and workflow.is_active and db_node.type == "trigger":

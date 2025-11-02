@@ -1,0 +1,92 @@
+{
+  "name": "Telegram Trigger Node",
+  "type": "trigger",
+  "category": "TelegramTriggerNode",
+  "config_metadata": {
+    "inputs": [
+      {
+        "name": "bot_token",
+        "label": "Bot Token",
+        "type": "string",
+        "required": true,
+        "description": "Your Telegram bot token from @BotFather"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "update",
+        "label": "Update",
+        "type": "object",
+        "description": "The complete Telegram update object containing update_id and message",
+        "schema": {
+          "update_id": "number",
+          "message": "object"
+        }
+      },
+      {
+        "name": "message",
+        "label": "Message",
+        "type": "object",
+        "description": "The incoming Telegram message object containing message_id, text, date, from, and chat fields",
+        "schema": {
+          "message_id": "number",
+          "text": "string",
+          "date": "number",
+          "from": {
+            "id": "number",
+            "is_bot": "boolean",
+            "first_name": "string",
+            "language_code": "string"
+          },
+          "chat": {
+            "id": "number",
+            "first_name": "string",
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "chat_id",
+        "label": "Chat ID",
+        "type": "number",
+        "description": "The chat ID where the message was sent (extracted from message.chat.id)"
+      },
+      {
+        "name": "text",
+        "label": "Message Text",
+        "type": "string",
+        "description": "The text content of the message (extracted from message.text)"
+      },
+      {
+        "name": "from_user",
+        "label": "From User",
+        "type": "object",
+        "description": "Information about the user who sent the message (extracted from message.from), containing id, is_bot, first_name, and language_code",
+        "schema": {
+          "id": "number",
+          "is_bot": "boolean",
+          "first_name": "string",
+          "language_code": "string"
+        }
+      },
+      {
+        "name": "chat",
+        "label": "Chat",
+        "type": "object",
+        "description": "Information about the chat where the message was sent (extracted from message.chat), containing id, first_name, type (private/group/channel)",
+        "schema": {
+          "id": "number",
+          "first_name": "string",
+          "type": "string"
+        }
+      },
+      {
+        "name": "date",
+        "label": "Date",
+        "type": "number",
+        "description": "Unix timestamp of when the message was sent (extracted from message.date)"
+      }
+    ]
+  }
+}
+
