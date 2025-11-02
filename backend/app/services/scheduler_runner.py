@@ -41,8 +41,6 @@ class SchedulerRunner:
                         event_type = event.get("type")
                         payload = event.get("payload", {})
 
-                        # Delegate to event handler
-                        print("[SchedulerRunner] BEFORE") 
                         self.event_handler.handle_event(event_type, payload)
 
                     except json.JSONDecodeError:

@@ -1,0 +1,43 @@
+{
+  "name": "Telegram Trigger Node",
+  "type": "trigger",
+  "category": "TelegramTriggerNode",
+  "config_metadata": {
+    "inputs": [
+      {
+        "name": "bot_token",
+        "label": "Bot Token",
+        "type": "string",
+        "required": true,
+        "description": "Your Telegram bot token from @BotFather"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "message",
+        "label": "Message",
+        "type": "object",
+        "description": "The incoming Telegram message data"
+      },
+      {
+        "name": "chat_id",
+        "label": "Chat ID",
+        "type": "string",
+        "description": "The chat ID where the message was sent"
+      },
+      {
+        "name": "text",
+        "label": "Message Text",
+        "type": "string",
+        "description": "The text content of the message"
+      },
+      {
+        "name": "from_user",
+        "label": "From User",
+        "type": "object",
+        "description": "Information about the user who sent the message"
+      }
+    ]
+  }
+}
+

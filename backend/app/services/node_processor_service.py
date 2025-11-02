@@ -1,9 +1,10 @@
 from handlers.node_handler_factory import NodeHandlerFactory
+from services.redis_service import RedisService
 
 
 class NodeProcessorService:
-    def __init__(self, scheduler_service):
-        self.factory = NodeHandlerFactory(scheduler_service)
+    def __init__(self, scheduler_service, redis_service: RedisService):
+        self.factory = NodeHandlerFactory(scheduler_service, redis_service)
 
     def process(self, node: dict, workflow_id: int):
         category = node.get("node_category")

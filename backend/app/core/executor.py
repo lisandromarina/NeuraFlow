@@ -93,13 +93,14 @@ class WorkflowExecutor:
         if node.node.type.lower() in self.TRIGGER_TYPES:
             self.logger.log(f"Skipping trigger node {node.id} — passing context to downstream nodes.", indent_level)
             
-            # Mark trigger node as completed with a special result FIRST
+            # For trigger nodes, store the enhanced_context directly as the result
+            # This allows downstream nodes to access trigger data via parent_result.field_name
             with self.node_completion_lock:
-                self.node_results[node.id] = {"trigger_completed": True, "context": enhanced_context}
+                self.node_results[node.id] = enhanced_context
                 self.logger.log(f"Trigger node {node.id} marked as completed", indent_level)
             
             # Now submit downstream nodes (they will see the parent as completed)
-            self._submit_downstream(node, enhanced_context, node_map, connection_map, parent_map, indent_level, parent_result={"trigger_completed": True})
+            self._submit_downstream(node, enhanced_context, node_map, connection_map, parent_map, indent_level, parent_result=enhanced_context)
             return
 
         # Resolve config and execute node

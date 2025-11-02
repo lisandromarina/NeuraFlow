@@ -33,6 +33,8 @@ services:
       - app_network
     environment:
       - REDIS_URL=redis://redis_db:6379/0
+    env_file:
+      - ./.env
     depends_on:
       - redis
 
