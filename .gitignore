@@ -18,7 +18,9 @@ out/
 .env.test.local
 .env.production.local
 
-.ngrok_config/ngrok.yml
+# Ngrok config (contains sensitive auth tokens)
+.ngrok.yml
+ngrok_config/ngrok.yml
 
 # Logs
 logs
