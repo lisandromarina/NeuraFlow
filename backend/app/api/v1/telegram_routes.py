@@ -1,22 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Dict
 import json
-import redis
-import os
 import httpx
-from dependencies import get_db_session
+from dependencies import get_db_session, get_redis_client
 from sqlalchemy.orm import Session
 from models.db_models.workflow_nodes import WorkflowNode
 from utils.token_security import decrypt_credentials
+from services.redis_service import RedisService
+from redis import Redis
 
 router = APIRouter(prefix="/telegram", tags=["Telegram"])
 
-REDIS_URL = os.getenv("REDIS_URL")
-if not REDIS_URL:
-    raise ValueError("Missing environment variable: REDIS_URL")
-
-redis_client = redis.Redis.from_url(REDIS_URL)
 WORKFLOW_TRIGGERS_STREAM = "workflow_triggers"
+
+
+def get_redis_service(redis_client: Redis = Depends(get_redis_client)) -> RedisService:
+    """Dependency to provide RedisService instance"""
+    return RedisService(redis_client)
 
 
 @router.get("/webhook-info/{workflow_id}/{node_id}")
@@ -76,7 +76,7 @@ async def telegram_webhook(
     workflow_id: int,
     node_id: int,
     request: Request,
-    db: Session = Depends(get_db_session)
+    redis_service: RedisService = Depends(get_redis_service)
 ):
     """
     Receives Telegram webhook messages and triggers the associated workflow.
@@ -112,7 +112,7 @@ async def telegram_webhook(
         print(f"[TelegramWebhook] Message: {message.get('text', 'No text')}")
         
         # Add to Redis stream to trigger workflow
-        redis_client.xadd(WORKFLOW_TRIGGERS_STREAM, {
+        redis_service.add_to_stream(WORKFLOW_TRIGGERS_STREAM, {
             "workflow_id": str(workflow_id),
             "context": json.dumps(context)
         })
