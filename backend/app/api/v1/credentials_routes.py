@@ -161,3 +161,4 @@ def oauth_callback(
         frontend_url = frontend_url + "/oauth-success"
         query = urllib.parse.urlencode({"provider": provider})
         return RedirectResponse(f"{frontend_url}?{query}")
+
