@@ -1,12 +1,6 @@
-import urllib
-from utils.token_security import encrypt_credentials
 from fastapi import APIRouter, Depends, HTTPException, Query  # type: ignore
-from fastapi.responses import RedirectResponse # type: ignore
 from typing import List
-from urllib.parse import urlencode
-import os, json, base64, requests
 from models.schemas.user_credential import (
-    UserAuthentication,
     UserCredentialCreate,
     UserCredentialUpdate,
     UserCredentialSchema,
@@ -14,6 +8,7 @@ from models.schemas.user_credential import (
 from services.user_credential_service import UserCredentialService
 from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCredentialRepository
 from dependencies import get_user_credential_repository
+from providers.credential_connector_factory import CredentialConnectorFactory
 
 router = APIRouter(prefix="/credentials", tags=["User Credentials"])
 
@@ -61,104 +56,46 @@ def delete_credential(credential_id: int, service: UserCredentialService = Depen
 
 # ---------------- OAUTH CONNECT FLOW ----------------
 
+def get_connector_factory(
+    credential_service: UserCredentialService = Depends(get_user_credential_service)
+) -> CredentialConnectorFactory:
+    """Dependency to get credential connector factory"""
+    return CredentialConnectorFactory(credential_service)
+
 @router.post("/{service}/connect")
-def connect_service(service: str, body: dict):
+def connect_service(
+    service: str, 
+    body: dict,
+    factory: CredentialConnectorFactory = Depends(get_connector_factory)
+):
     """
-    Generate OAuth URL for the user to connect their account.
-    Encodes user_id in the state parameter for safe identification.
+    Connect a service account:
+    - For OAuth services (like Google): Generate OAuth URL
+    - For API key services (like OpenAI): Accept and store API key directly
     """
     user_id = body["user_id"]
-    provider = body["provider"]
-    scopes = body["scopes"]
-
-    service_lower = service.lower()
-    provider_lower = provider.lower()
-
-    if service_lower.lower() == "google":
-
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
-        
-        if not client_id:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
-        if not redirect_uri:
-            raise ValueError("Missing environment variable: GOOGLE_REDIRECT_URI")
-
-        scope_str = " ".join(scopes)
-
-        # Encode user_id in state
-        state_payload = base64.urlsafe_b64encode(
-            json.dumps({"user_id": user_id, "provider": provider_lower}).encode()
-        ).decode()
-
-        oauth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
-            "response_type": "code",
-            "client_id": client_id,
-            "redirect_uri": redirect_uri,
-            "scope": scope_str,
-            "access_type": "offline",
-            "prompt": "consent",
-            "state": state_payload
-        })
-        return {"oauth_url": oauth_url}
-
-    raise HTTPException(status_code=400, detail="Unsupported service")
+    
+    connector = factory.get_connector(service)
+    if not connector:
+        raise HTTPException(status_code=400, detail=f"Unsupported service: {service}")
+    
+    return connector.connect(user_id, body)
 
 @router.get("/callback/{service_name}")
 def oauth_callback(
     service_name: str,
     code: str = Query(...),
     state: str = Query(...),
-    service: UserCredentialService = Depends(get_user_credential_service)
+    factory: CredentialConnectorFactory = Depends(get_connector_factory)
 ):
-    try:
-        state_decoded = json.loads(base64.urlsafe_b64decode(state).decode())
-        user_id = state_decoded["user_id"]
-        provider = state_decoded.get("provider") 
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid state parameter")
+    """Handle OAuth callback for supported services"""
+    connector = factory.get_connector(service_name)
+    if not connector:
+        raise HTTPException(status_code=400, detail=f"Unsupported service: {service_name}")
     
-    if service_name.lower() == "google":
-        token_endpoint = "https://oauth2.googleapis.com/token"
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
-        
-        if not client_id:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
-        if not client_secret:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_SECRET")
-        if not redirect_uri:
-            raise ValueError("Missing environment variable: GOOGLE_REDIRECT_URI")
-
-        data = {
-            "code": code,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "redirect_uri": redirect_uri,
-            "grant_type": "authorization_code",
-        }
-        resp = requests.post(token_endpoint, data=data)
-
-        if not resp.ok:
-            raise HTTPException(status_code=400, detail="Failed to get tokens")
-
-        token_data = resp.json()
-
-        cred_data = {
-            "user_id": user_id,
-            "service": service_name,
-            "auth_type": "oauth2",
-            "credentials": token_data
-        }
-
-        service.create_or_update_credential(UserAuthentication(**cred_data))
-
-        # Redirect to frontend OAuth success page
-        frontend_url = os.getenv("FRONTEND_URL")
-        if not frontend_url:
-            raise ValueError("Missing environment variable: FRONTEND_URL")
-        frontend_url = frontend_url + "/oauth-success"
-        query = urllib.parse.urlencode({"provider": provider})
-        return RedirectResponse(f"{frontend_url}?{query}")
+    result = connector.handle_callback(service_name, code, state)
+    if result is None:
+        raise HTTPException(status_code=400, detail=f"Service {service_name} does not support OAuth callbacks")
+    
+    return result
 

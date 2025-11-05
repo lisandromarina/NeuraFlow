@@ -55,12 +55,24 @@ class UserCredentialService:
             "expires_in": decrypted_creds.get("expires_in"),
         }
     
+    def get_credentials_by_service(self, user_id: int, service: str) -> Optional[dict]:
+        """
+        Fetch and decrypt credentials for a given user_id and service.
+        Returns the decrypted credentials as a dictionary.
+        """
+        cred_db = self.credential_repo.get_by_user_and_service(user_id, service)
+        if not cred_db:
+            return None
+        
+        # Decrypt stored credentials JSON
+        decrypted_creds = decrypt_credentials(cred_db.credentials)
+        return decrypted_creds
+    
     def create_or_update_credential(self, data: UserAuthentication) -> UserCredentialDB:
         """
         Creates or updates a credential for a user:
-        - If a credential for the same service exists:
-            - Decrypts and merges scopes if new ones are provided.
-            - Skips if scopes already exist.
+        - For OAuth services: Merges scopes if new ones are provided
+        - For API key services: Replaces the existing credentials
         - Otherwise, creates a new credential entry (encrypted).
         """
         existing_cred: UserCredentialDB = self.credential_repo.get_by_user_and_service(
@@ -68,24 +80,32 @@ class UserCredentialService:
         )
 
         if existing_cred:
-            existing_data = decrypt_credentials(existing_cred.credentials)
+            # Handle OAuth (with scopes) vs API key (without scopes)
+            if data.auth_type == "oauth2" and "scope" in data.credentials:
+                existing_data = decrypt_credentials(existing_cred.credentials)
 
-            existing_scopes = set(existing_data.get("scope", "").split())
+                existing_scopes = set(existing_data.get("scope", "").split())
+                new_scopes = set(data.credentials.get("scope", "").split())
 
-            new_scopes = set(data.credentials.get("scope", "").split())
+                if new_scopes.issubset(existing_scopes):
+                    return existing_cred
 
-            if new_scopes.issubset(existing_scopes):
-                return existing_cred
+                # Merge scopes for OAuth
+                merged_scopes = list(existing_scopes.union(new_scopes))
+                existing_data["scope"] = " ".join(merged_scopes)
 
-            # Merge scopes
-            merged_scopes = list(existing_scopes.union(new_scopes))
-            existing_data["scope"] = " ".join(merged_scopes)
+                # Update existing credential with merged scopes
+                updated_encrypted = encrypt_credentials(existing_data)
+                existing_cred.credentials = updated_encrypted
 
-            # FIXED: pass dict directly, do NOT json.dumps here
-            updated_encrypted = encrypt_credentials(existing_data)
-            existing_cred.credentials = updated_encrypted
+                return self.credential_repo.update(existing_cred)
+            else:
+                # For API keys or other auth types, just replace the credentials
+                updated_encrypted = encrypt_credentials(data.credentials)
+                existing_cred.credentials = updated_encrypted
+                existing_cred.auth_type = data.auth_type
 
-            return self.credential_repo.update(existing_cred)
+                return self.credential_repo.update(existing_cred)
 
         # ✅ Create new credential (encrypt credentials first)
         encrypted_creds = encrypt_credentials(data.credentials)

@@ -216,8 +216,8 @@ class WorkflowNodeService:
         credentials = config_metadata.get("credentials")
         hasCred = False
         if(credentials):
-            metadata_scope = credentials.get("scopes", [])
             credentials_name = credentials.get("name")
+            credentials_type = credentials.get("type")  # "oauth2" or "api_key"
 
             workflow: Workflow = self.workflow_repo.get_by_id(workflow_node.workflow_id)
 
@@ -225,11 +225,32 @@ class WorkflowNodeService:
             
             if(auth):
                 cred = decrypt_credentials(auth.credentials)
-                scope = cred.get("scope")
-                scope_list = set(scope.split())
-                metadata_set = set(metadata_scope)
-                if metadata_set.issubset(scope_list):
-                    hasCred = True
+                
+                # Handle OAuth credentials (with scope)
+                if credentials_type == "oauth2" or auth.auth_type == "oauth2":
+                    metadata_scope = credentials.get("scopes", [])
+                    scope = cred.get("scope")
+                    if scope:
+                        scope_list = set(scope.split())
+                        metadata_set = set(metadata_scope)
+                        if metadata_set.issubset(scope_list):
+                            hasCred = True
+                # Handle API key credentials (no scope, just check if api_key exists)
+                elif credentials_type == "api_key" or auth.auth_type == "api_key":
+                    api_key = cred.get("api_key")
+                    if api_key:
+                        hasCred = True
+                # Fallback: if no type specified, check for scope (OAuth) or api_key
+                else:
+                    if cred.get("scope"):
+                        metadata_scope = credentials.get("scopes", [])
+                        scope = cred.get("scope")
+                        scope_list = set(scope.split())
+                        metadata_set = set(metadata_scope)
+                        if metadata_set.issubset(scope_list):
+                            hasCred = True
+                    elif cred.get("api_key"):
+                        hasCred = True
 
         # Get parent outputs
         parents_outputs = self.get_parent_outputs(workflow_node_id)
