@@ -1,9 +1,38 @@
-import os
+import json
 from core.node_factory import NodeFactory
 from core.logger import Logger
 from services.user_credential_service import UserCredentialService
 from openai import OpenAI
 from openai import APIError, APIConnectionError, APITimeoutError, RateLimitError
+
+
+def _load_format_output(config):
+    format_output = config.get("format_output")
+    if isinstance(format_output, str):
+        format_output = format_output.strip()
+        if not format_output:
+            return None
+        try:
+            return json.loads(format_output)
+        except json.JSONDecodeError:
+            return None
+    return format_output
+
+
+def _extract_structured_content(content: str):
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # Attempt to locate first JSON object in content
+        start = content.find("{")
+        end = content.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            snippet = content[start:end + 1]
+            try:
+                return json.loads(snippet)
+            except json.JSONDecodeError:
+                return None
+        return None
 
 
 @NodeFactory.register("LLMNode")
@@ -27,6 +56,14 @@ class LLMExecutor:
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens")
         system_prompt = config.get("system_prompt")
+        format_output_schema = _load_format_output(config)
+
+        if format_output_schema:
+            json_instruction = "You must respond with valid JSON that matches the expected schema."
+            if system_prompt:
+                system_prompt = f"{system_prompt.strip()}\n\n{json_instruction}"
+            else:
+                system_prompt = json_instruction
 
         if not user_id:
             raise ValueError("Missing required config key: 'user_id'")
@@ -67,6 +104,11 @@ class LLMExecutor:
         if max_tokens:
             completion_params["max_tokens"] = max_tokens
 
+        if isinstance(format_output_schema, dict):
+            completion_params["response_format"] = {
+                "type": "json_object"
+            }
+
         try:
             # === Make the API request ===
             completion = client.chat.completions.create(**completion_params)
@@ -86,7 +128,11 @@ class LLMExecutor:
                         "total_tokens": completion.usage.total_tokens
                     }
                 
-                return {
+                structured_output = None
+                if format_output_schema:
+                    structured_output = _extract_structured_content(content)
+
+                result = {
                     "content": content,
                     "model": completion.model,
                     "usage": usage_info,
@@ -109,6 +155,18 @@ class LLMExecutor:
                         "usage": usage_info
                     }
                 }
+                logger.log(f"[LLMNode] Results: {result}")
+
+                if isinstance(structured_output, dict):
+                    result["structured_output"] = structured_output
+                    for key, value in structured_output.items():
+                        if key not in result:
+                            result[key] = value
+                elif structured_output is not None:
+                    result["structured_output"] = structured_output
+
+                logger.log(f"[LLMNode] Returning object : {result}")
+                return result
             else:
                 raise ValueError("No choices in OpenAI response")
 

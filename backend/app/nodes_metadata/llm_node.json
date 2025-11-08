@@ -62,39 +62,50 @@
         "required": false,
         "description": "Maximum number of tokens to generate. Leave empty for no limit.",
         "min": 1
-      }
-    ],
-    "outputs": [
-      {
-        "name": "content",
-        "label": "Response Content",
-        "type": "string",
-        "description": "The generated text response from the LLM"
       },
       {
-        "name": "model",
-        "label": "Model Used",
-        "type": "string",
-        "description": "The model that was used for the completion"
-      },
-      {
-        "name": "usage",
-        "label": "Token Usage",
-        "type": "object",
-        "description": "Information about token usage (prompt_tokens, completion_tokens, total_tokens)",
-        "schema": {
-          "prompt_tokens": "number",
-          "completion_tokens": "number",
-          "total_tokens": "number"
-        }
-      },
-      {
-        "name": "full_response",
-        "label": "Full Response",
+        "name": "format_output",
+        "label": "Output Schema",
         "type": "json",
-        "description": "The complete response from the OpenAI API"
+        "required": false,
+        "description": "Optional JSON schema that defines the structured response you expect."
       }
     ],
+    "outputs": {
+      "dynamic": true,
+      "builder": "LLMNodeOutputBuilder",
+      "default": [
+        {
+          "name": "content",
+          "label": "Response Content",
+          "type": "string",
+          "description": "The generated text response from the LLM"
+        },
+        {
+          "name": "model",
+          "label": "Model Used",
+          "type": "string",
+          "description": "The model that was used for the completion"
+        },
+        {
+          "name": "usage",
+          "label": "Token Usage",
+          "type": "object",
+          "description": "Information about token usage (prompt_tokens, completion_tokens, total_tokens)",
+          "schema": {
+            "prompt_tokens": "number",
+            "completion_tokens": "number",
+            "total_tokens": "number"
+          }
+        },
+        {
+          "name": "full_response",
+          "label": "Full Response",
+          "type": "json",
+          "description": "The complete response from the OpenAI API"
+        }
+      ]
+    },
     "linkable_fields": [
       {
         "field_name": "prompt",
