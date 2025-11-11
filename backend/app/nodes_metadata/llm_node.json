@@ -1,0 +1,119 @@
+{
+  "name": "LLM Node",
+  "type": "action",
+  "category": "LLMNode",
+  "description": "Interact with OpenAI's API for LLM operations. Supports chat completions with configurable model, temperature, and other parameters.",
+  "config_metadata": {
+    "credentials": {
+      "required": true,
+      "name": "openai",
+      "type": "api_key",
+      "label": "OpenAI API Key",
+      "endpoint": "/credentials/openai"
+    },
+
+    "inputs": [
+      {
+        "name": "prompt",
+        "label": "Prompt",
+        "type": "textarea",
+        "required": true,
+        "description": "The user prompt to send to the LLM",
+        "placeholder": "Enter your prompt here..."
+      },
+      {
+        "name": "model",
+        "label": "Model",
+        "type": "select",
+        "required": false,
+        "default": "gpt-3.5-turbo",
+        "description": "The OpenAI model to use",
+        "options": [
+          { "label": "GPT-3.5 Turbo", "value": "gpt-3.5-turbo" },
+          { "label": "GPT-4", "value": "gpt-4" },
+          { "label": "GPT-4 Turbo", "value": "gpt-4-turbo-preview" },
+          { "label": "GPT-4.1-mini", "value": "gpt-4o" },
+          { "label": "GPT-4o", "value": "gpt-4.1-mini" }
+        ]
+      },
+      {
+        "name": "system_prompt",
+        "label": "System Prompt",
+        "type": "textarea",
+        "required": false,
+        "description": "Optional system prompt to set the assistant's behavior",
+        "placeholder": "You are a helpful assistant..."
+      },
+      {
+        "name": "temperature",
+        "label": "Temperature",
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Controls randomness (0.0 to 2.0). Higher values make output more random.",
+        "min": 0,
+        "max": 2,
+        "step": 0.1
+      },
+      {
+        "name": "max_tokens",
+        "label": "Max Tokens",
+        "type": "number",
+        "required": false,
+        "description": "Maximum number of tokens to generate. Leave empty for no limit.",
+        "min": 1
+      },
+      {
+        "name": "format_output",
+        "label": "Output Schema",
+        "type": "json",
+        "required": false,
+        "description": "Optional JSON schema that defines the structured response you expect."
+      }
+    ],
+    "outputs": {
+      "dynamic": true,
+      "builder": "LLMNodeOutputBuilder",
+      "default": [
+        {
+          "name": "content",
+          "label": "Response Content",
+          "type": "string",
+          "description": "The generated text response from the LLM"
+        },
+        {
+          "name": "model",
+          "label": "Model Used",
+          "type": "string",
+          "description": "The model that was used for the completion"
+        },
+        {
+          "name": "usage",
+          "label": "Token Usage",
+          "type": "object",
+          "description": "Information about token usage (prompt_tokens, completion_tokens, total_tokens)",
+          "schema": {
+            "prompt_tokens": "number",
+            "completion_tokens": "number",
+            "total_tokens": "number"
+          }
+        },
+        {
+          "name": "full_response",
+          "label": "Full Response",
+          "type": "json",
+          "description": "The complete response from the OpenAI API"
+        }
+      ]
+    },
+    "linkable_fields": [
+      {
+        "field_name": "prompt",
+        "component": "text",
+        "label": "Prompt",
+        "show_if": {}
+      }
+    ]
+  }
+}
+

@@ -1,7 +1,6 @@
-import json
 from core.events import WORKFLOW_DELETED, WORKFLOW_UPDATED
 from fastapi import HTTPException # type: ignore
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from models.schemas.workflow import Workflow
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeUpdate, WorkflowNodeSchema
 from models.db_models.workflow_nodes import WorkflowNode
@@ -11,9 +10,9 @@ from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowReposi
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
 from repositories.sqlalchemy_node_repository import SqlAlchemyNodeRepository
 from repositories.sqlalchemy_workflow_connection_repository import SqlAlchemyWorkflowConnectionRepository
-from redis import Redis # type: ignore
 from models.db_models.node_db import Node
 from utils.token_security import decrypt_credentials, encrypt_credentials
+from dynamic_outputs import DynamicOutputRegistry
 
 class WorkflowNodeService:
     def __init__(
@@ -31,6 +30,30 @@ class WorkflowNodeService:
         self.credentials_repo = credentials_repo
         self.redis_service = redis_service
         self.workflow_connection_repo = workflow_connection_repo
+
+    def _resolve_outputs(self, config_metadata: Dict[str, Any], node_config: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        outputs_def = config_metadata.get("outputs", [])
+
+        if isinstance(outputs_def, dict):
+            if outputs_def.get("dynamic"):
+                builder_name = outputs_def.get("builder")
+                if builder_name:
+                    try:
+                        outputs = DynamicOutputRegistry.get_outputs(builder_name, node_config or {})
+                        if outputs:
+                            return outputs
+                    except Exception:
+                        pass
+                default_outputs = outputs_def.get("default", [])
+                if isinstance(default_outputs, list):
+                    return default_outputs
+                return []
+            return []
+
+        if isinstance(outputs_def, list):
+            return outputs_def
+
+        return []
 
 
     # ------------------------
@@ -69,7 +92,7 @@ class WorkflowNodeService:
                 parent_node = self.node_repo.get_node(parent_workflow_node.node_id)
                 if parent_node:
                     config_metadata = parent_node.config_metadata or {}
-                    outputs = config_metadata.get("outputs", [])
+                    outputs = self._resolve_outputs(config_metadata, parent_workflow_node.custom_config)
                     parent_outputs.append({
                         "parent_id": parent_id,
                         "parent_name": parent_workflow_node.name,
@@ -212,12 +235,13 @@ class WorkflowNodeService:
             value = custom_config.get(name, input_def.get("default"))
             inputs.append({**input_def, "value": value})
 
-        outputs = config_metadata.get("outputs", [])
+        outputs = self._resolve_outputs(config_metadata, custom_config)
+
         credentials = config_metadata.get("credentials")
         hasCred = False
         if(credentials):
-            metadata_scope = credentials.get("scopes", [])
             credentials_name = credentials.get("name")
+            credentials_type = credentials.get("type")  # "oauth2" or "api_key"
 
             workflow: Workflow = self.workflow_repo.get_by_id(workflow_node.workflow_id)
 
@@ -225,11 +249,32 @@ class WorkflowNodeService:
             
             if(auth):
                 cred = decrypt_credentials(auth.credentials)
-                scope = cred.get("scope")
-                scope_list = set(scope.split())
-                metadata_set = set(metadata_scope)
-                if metadata_set.issubset(scope_list):
-                    hasCred = True
+                
+                # Handle OAuth credentials (with scope)
+                if credentials_type == "oauth2" or auth.auth_type == "oauth2":
+                    metadata_scope = credentials.get("scopes", [])
+                    scope = cred.get("scope")
+                    if scope:
+                        scope_list = set(scope.split())
+                        metadata_set = set(metadata_scope)
+                        if metadata_set.issubset(scope_list):
+                            hasCred = True
+                # Handle API key credentials (no scope, just check if api_key exists)
+                elif credentials_type == "api_key" or auth.auth_type == "api_key":
+                    api_key = cred.get("api_key")
+                    if api_key:
+                        hasCred = True
+                # Fallback: if no type specified, check for scope (OAuth) or api_key
+                else:
+                    if cred.get("scope"):
+                        metadata_scope = credentials.get("scopes", [])
+                        scope = cred.get("scope")
+                        scope_list = set(scope.split())
+                        metadata_set = set(metadata_scope)
+                        if metadata_set.issubset(scope_list):
+                            hasCred = True
+                    elif cred.get("api_key"):
+                        hasCred = True
 
         # Get parent outputs
         parents_outputs = self.get_parent_outputs(workflow_node_id)
