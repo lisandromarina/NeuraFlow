@@ -78,9 +78,43 @@ GOOGLE_REDIRECT_URI=http://localhost:8000/credentials/callback/google
 
 # Frontend URL
 FRONTEND_URL=http://localhost:3000
+
+# Ngrok URL (for Telegram webhooks - set after running ngrok)
+NGROK_URL=https://your-ngrok-url.ngrok-free.app
 ```
 
-### 3. Build and Start the Application
+### 3. Ngrok Setup (Required for Telegram Integration)
+
+If you plan to use Telegram triggers, you need to set up ngrok to expose your local backend:
+
+1. **Set up ngrok configuration**:
+   ```bash
+   mkdir -p ngrok_config
+   cp ngrok_config/ngrok.yml.example ngrok_config/ngrok.yml
+   ```
+   
+2. **Edit `ngrok_config/ngrok.yml`** and add your ngrok authtoken:
+   ```yaml
+   authtoken: YOUR_NGROK_AUTH_TOKEN_HERE
+   ```
+
+3. **Start ngrok manually**:
+   ```bash
+   docker-compose -f docker-compose.ngrok.yml up -d
+   ```
+
+4. **Get your ngrok URL**:
+   - Visit http://localhost:4040 to view the ngrok web interface
+   - Or run: `curl http://localhost:4040/api/tunnels`
+   - Copy the public URL (e.g., `https://471946aba7ad.ngrok-free.app`)
+
+5. **Add the ngrok URL to your `.env` file**:
+   ```bash
+   NGROK_URL=https://your-ngrok-url.ngrok-free.app
+   ```
+   Replace `your-ngrok-url.ngrok-free.app` with your actual ngrok URL.
+
+### 4. Build and Start the Application
 
 ```bash
 docker-compose up --build
@@ -169,6 +203,7 @@ NeuraFlow/
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | ✅ | - |
 | `GOOGLE_REDIRECT_URI` | Google OAuth redirect URI | ✅ | - |
 | `FRONTEND_URL` | Frontend application URL | ✅ | - |
+| `NGROK_URL` | Ngrok public URL (for Telegram webhooks) | ⚠️ | - |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration time | ❌ | 30 |
 
 ### Google OAuth Setup
