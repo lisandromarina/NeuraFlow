@@ -10,8 +10,10 @@ services:
       - "3000:5173"
     networks:
       - app_network
+    env_file:
+      - ./.env
     environment:
-      - VITE_API_URL=http://localhost:8000
+
       - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./frontend:/app:cached
@@ -65,8 +67,11 @@ services:
     env_file:
       - ./.env
     environment:
+      # Docker-specific: Use service names for internal networking
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mydatabase
       - REDIS_URL=redis://redis_db:6379/0
+      # Frontend URL can be overridden from .env if needed
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     depends_on:
       - redis
       - postgres

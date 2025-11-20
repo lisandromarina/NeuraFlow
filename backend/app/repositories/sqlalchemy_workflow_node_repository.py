@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 from models.db_models.workflow_nodes import WorkflowNode as WorkflowNodeDB
 from models.schemas.workflow_node import WorkflowNodeCreate, WorkflowNodeSchema
 from models.db_models.node_db import Node

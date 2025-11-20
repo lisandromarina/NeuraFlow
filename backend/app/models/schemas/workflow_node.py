@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel  # pyright: ignore[reportMissingImports]
 from typing import Dict, Optional
 
 class WorkflowNodeBase(BaseModel):
