@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
 import PlaceholderNodeDemo from "../nodes/placeholderdemo";
@@ -62,8 +62,10 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
     handleConnect,
     handleNodesDelete,
     handleEdgesDelete,
+    handleNodeDrag,
     handleNodeDragStop,
     toggleWorkflowActive,
+    isDraggingRef,
   } = useWorkflowHandlers({
     selectedWorkflowId,
     edges,
@@ -95,6 +97,12 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
   const handleDropWrapper = (event: React.DragEvent) => {
     handleDrop(event, reactFlowWrapper);
   };
+
+  // Note: onNodesChange is called by ReactFlow for all node changes including position updates during drag.
+  // We let it work normally to maintain ReactFlow's internal state. The key is that:
+  // - handleNodeDrag updates local state only (no API calls)
+  // - handleNodeDragStop is the only place that calls the API to update coordinates
+  // This ensures API calls only happen when drag ends, not on every frame.
 
   // Expose the single node delete handler to parent
   useEffect(() => {
@@ -131,6 +139,7 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
         onEdgesDelete={handleEdgesDelete}
         onInit={setRfInstance}
         onViewportChange={setViewport}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}

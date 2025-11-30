@@ -23,6 +23,7 @@ interface WorkflowComponentProps {
   onEdgesDelete?: (deletedEdges: any[]) => void;
   onInit?: (instance: any) => void;
   onViewportChange?: (viewport: { x: number; y: number; zoom: number }) => void;
+  onNodeDrag?: (event: any, node: any) => void;
   onNodeDragStop?: (event: any, node: any) => void;
   onNodeClick?: (event: React.MouseEvent, node: WorkflowNodeType) => void; 
   onPaneClick?: (event: React.MouseEvent) => void;
@@ -42,6 +43,7 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
   onEdgesDelete,
   onInit,
   onViewportChange,
+  onNodeDrag,
   onNodeDragStop,
   onNodeClick,
   onPaneClick,
@@ -65,6 +67,7 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
         fitView
         onInit={onInit}
         onViewportChange={onViewportChange}
+        onNodeDrag={onNodeDrag ? (event, node) => onNodeDrag(event, node) : undefined}
         onNodeDragStop={onNodeDragStop} 
         onNodeClick={(event, node) => onNodeClick?.(event, node)}
         onPaneClick={(event) => onPaneClick?.(event)}

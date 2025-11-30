@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useApi } from '../api/useApi';
 import { toast } from 'sonner';
 import { useWorkflow } from '@/context/WorkflowContext';
@@ -39,6 +39,7 @@ export const useWorkflowHandlers = ({
 }: UseWorkflowHandlersProps) => {
   const { callApi } = useApi();
   const { nodeForPlacement, setNodeForPlacement } = useWorkflow();
+  const isDraggingRef = useRef<Set<string>>(new Set());
 
   const safeApi = useCallback(async (fn: () => Promise<any>, fallback: any = null) => {
     try {
@@ -163,9 +164,20 @@ export const useWorkflowHandlers = ({
     setEdges((eds) => eds.filter((e) => !deletedEdges.some((de) => de.id === e.id)));
   }, [deleteConnection, setEdges]);
 
-  const handleNodeDragStop = useCallback((_: any, node: any) => {
+  const handleNodeDrag = useCallback((_: any, node: any) => {
+    // Track that this node is being dragged
+    isDraggingRef.current.add(node.id);
+    // Only update local state during drag, no API call
     setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n)));
-    updateNode(node.id, { position_x: node.position.x, position_y: node.position.y });
+  }, [setNodes]);
+
+  const handleNodeDragStop = useCallback((_: any, node: any) => {
+    // Remove from dragging set
+    isDraggingRef.current.delete(node.id);
+    // Update local state
+    setNodes((nds) => nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n)));
+    // Only now call the API to update coordinates
+    updateNode(Number(node.id), { position_x: node.position.x, position_y: node.position.y });
   }, [setNodes, updateNode]);
 
   const toggleWorkflowActive = useCallback(async () => {
@@ -188,7 +200,9 @@ export const useWorkflowHandlers = ({
     handleConnect,
     handleNodesDelete,
     handleEdgesDelete,
+    handleNodeDrag,
     handleNodeDragStop,
     toggleWorkflowActive,
+    isDraggingRef,
   };
 };
