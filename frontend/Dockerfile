@@ -4,8 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Clean install
-RUN npm ci --legacy-peer-deps
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
