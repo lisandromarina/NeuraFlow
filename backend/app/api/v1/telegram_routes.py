@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from dependencies import get_redis_client, get_workflow_node_repository
+from dependencies import get_redis_client, get_workflow_node_repository, get_db_session
 from services.redis_service import RedisService
 from services.telegram_service import TelegramService
 from repositories.sqlalchemy_workflow_node_repository import SqlAlchemyWorkflowNodeRepository
+from auth_dependencies import get_current_user, verify_workflow_ownership
+from sqlalchemy.orm import Session # type: ignore
 from redis import Redis
 
 router = APIRouter(prefix="/telegram", tags=["Telegram"])
@@ -21,12 +23,18 @@ def get_telegram_service(
 def get_webhook_info(
     workflow_id: int,
     node_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
     service: TelegramService = Depends(get_telegram_service)
 ):
     """
     Get webhook information for a Telegram bot.
     Returns the current webhook URL and status from Telegram.
+    Requires ownership of the workflow.
     """
+    # Verify ownership of the workflow
+    verify_workflow_ownership(workflow_id, current_user, db)
+    
     try:
         return service.get_webhook_info(workflow_id, node_id)
     except HTTPException:

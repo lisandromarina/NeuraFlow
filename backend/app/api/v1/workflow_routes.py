@@ -14,6 +14,8 @@ from dependencies import (
     get_workflow_repository,
     get_workflow_node_repository,
 )
+from auth_dependencies import get_current_user, verify_workflow_ownership
+from core.executor import WorkflowExecutor
 from sqlalchemy.orm import Session # type: ignore
 from redis import Redis # type: ignore
 
@@ -30,15 +32,25 @@ def get_workflow_service(
     return WorkflowService(workflow_repo, workflow_node_repo, redis_service)
 
 @router.get("/", response_model=List[Workflow])
-def list_workflows(service: WorkflowService = Depends(get_workflow_service)):
-    return service.list_workflows()
+def list_workflows(
+    current_user: dict = Depends(get_current_user),
+    service: WorkflowService = Depends(get_workflow_service)
+):
+    """List all workflows for the current user"""
+    # Filter workflows by current user
+    workflows = service.get_workflows_by_user(current_user["user_id"])
+    return workflows
 
 
 @router.post("/", response_model=Workflow)
 def create_workflow(
-    workflow: Workflow, 
+    workflow: Workflow,
+    current_user: dict = Depends(get_current_user),
     service: WorkflowService = Depends(get_workflow_service)
 ):
+    """Create a new workflow for the current user"""
+    # Ensure user_id matches current user
+    workflow.user_id = current_user["user_id"]
     return service.create_workflow(
         name=workflow.name,
         description=workflow.description,
@@ -47,9 +59,15 @@ def create_workflow(
 
 @router.get("/{workflow_id}", response_model=Workflow)
 def get_workflow(
-    workflow_id: int, 
+    workflow_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
     service: WorkflowService = Depends(get_workflow_service)
 ):
+    """Get a specific workflow (requires ownership)"""
+    # Verify ownership
+    verify_workflow_ownership(workflow_id, current_user, db)
+    
     wf = service.get_workflow(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -60,8 +78,14 @@ def get_workflow(
 def update_workflow(
     workflow_id: int,
     workflow_data: WorkflowPartialUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
     service: WorkflowService = Depends(get_workflow_service)
 ):
+    """Update a workflow (requires ownership)"""
+    # Verify ownership
+    verify_workflow_ownership(workflow_id, current_user, db)
+    
     update_fields = {k: v for k, v in workflow_data.dict().items() if v is not None}
     if not update_fields:
         raise HTTPException(status_code=400, detail="No valid fields provided for update")
@@ -75,8 +99,14 @@ def update_workflow(
 @router.delete("/{workflow_id}")
 def delete_workflow(
     workflow_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
     service: WorkflowService = Depends(get_workflow_service)
 ):
+    """Delete a workflow (requires ownership)"""
+    # Verify ownership
+    verify_workflow_ownership(workflow_id, current_user, db)
+    
     success = service.delete_workflow(workflow_id)
     if not success:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -86,8 +116,13 @@ def delete_workflow(
 @router.get("/{workflow_id}/full", response_model=WorkflowFullSchema)
 def get_full_workflow(
     workflow_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db_session)
 ):
+    """Get full workflow with nodes and connections (requires ownership)"""
+    # Verify ownership
+    verify_workflow_ownership(workflow_id, current_user, db)
+    
     workflow = db.query(WorkflowDB).filter(WorkflowDB.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -117,14 +152,18 @@ def get_full_workflow(
 def execute_workflow(
     workflow_id: int,
     context: Dict = Body(default={}),
+    current_user: dict = Depends(get_current_user),
     service: WorkflowService = Depends(get_workflow_service),
     db: Session = Depends(get_db_session)
 ):
+    """Execute a workflow (requires ownership)"""
+    # Verify ownership
+    verify_workflow_ownership(workflow_id, current_user, db)
+    
     workflow = service.get_workflow(workflow_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    from core.executor import WorkflowExecutor
     executor = WorkflowExecutor(db)
     try:
         executor.execute_workflow(workflow_id, context=context)
@@ -137,11 +176,17 @@ def execute_workflow(
 @router.get("/user/{user_id}", response_model=List[Workflow])
 def get_workflows_by_user(
     user_id: int,
+    current_user: dict = Depends(get_current_user),
     service: WorkflowService = Depends(get_workflow_service)
 ):
     """
     Get all workflows belonging to a specific user.
+    Users can only access their own workflows.
     """
+    # Ensure user can only access their own workflows
+    if user_id != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden: You can only access your own workflows")
+    
     workflows = service.get_workflows_by_user(user_id)
     if not workflows:
         raise HTTPException(status_code=404, detail="No workflows found for this user")
