@@ -16,7 +16,17 @@ if not DATABASE_URL:
     raise ValueError("Missing environment variable: DATABASE_URL")
 
 # 1. Create engine and session
-engine = create_engine(DATABASE_URL, echo=True)
+# Use environment variable to control echo mode (default: False for production)
+DB_ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=DB_ECHO,  # Disable in production, enable via DB_ECHO=true env var for development
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,  # Verify connections before using
+    pool_recycle=3600,   # Recycle connections after 1 hour
+)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 # 2. Create tables
