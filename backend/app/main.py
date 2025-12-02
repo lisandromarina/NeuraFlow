@@ -13,15 +13,20 @@ import nodes  # SUPER NEEDED, IMPORTS AND REGISTER ALL THE NODES
 app = FastAPI()
 
 # Configure CORS
-frontend_url = os.getenv("FRONTEND_URL")
-if not frontend_url:
+frontend_urls = os.getenv("FRONTEND_URL", "")
+if not frontend_urls:
     raise ValueError("Missing environment variable: FRONTEND_URL")
+
+# Support multiple origins (comma-separated) or single origin
+allowed_origins = [origin.strip() for origin in frontend_urls.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],  # React dev server
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Restricted to specific methods
+    allow_headers=["Authorization", "Content-Type", "Accept"],  # Explicit allowed headers
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 app.include_router(workflow_routes.router)
