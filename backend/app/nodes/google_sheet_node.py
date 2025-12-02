@@ -1,4 +1,3 @@
-import os
 import json
 from core.node_factory import NodeFactory
 from core.logger import Logger
@@ -6,6 +5,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build  # type: ignore
 from googleapiclient.errors import HttpError
 from services.user_credential_service import UserCredentialService
+from config import settings
 
 
 @NodeFactory.register("GoogleSheetsNode")
@@ -35,13 +35,8 @@ class GoogleSheetsExecutor:
         if not creds_data:
             raise ValueError(f"No Google credentials found for user_id {user_id}")
 
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        
-        if not client_id:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
-        if not client_secret:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_SECRET")
+        client_id = settings.google_client_id
+        client_secret = settings.google_client_secret
             
         credentials = Credentials(
             token=creds_data["access_token"],

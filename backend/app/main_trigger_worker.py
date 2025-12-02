@@ -4,12 +4,8 @@ from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCre
 from services.user_credential_service import UserCredentialService
 from services.trigger_worker import TriggerWorker
 from dependencies import get_db_session
-import os
+from config import settings
 import nodes # Do not delete, important for loading nodes!
-
-REDIS_URL = os.getenv("REDIS_URL")
-if not REDIS_URL:
-    raise ValueError("Missing environment variable: REDIS_URL")
 
 if __name__ == "__main__":
     # get a DB session manually from the generator
@@ -30,6 +26,6 @@ if __name__ == "__main__":
     }
 
     # --- Build and run worker
-    worker = TriggerWorker(executor, REDIS_URL, services=services)
+    worker = TriggerWorker(executor, settings.redis_url, services=services)
     logger.log("TriggerWorker listening...")
     worker.listen()

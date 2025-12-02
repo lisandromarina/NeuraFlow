@@ -1,4 +1,3 @@
-import os
 import json
 import base64
 import requests
@@ -10,6 +9,7 @@ from typing import Dict, Any, Optional
 from services.user_credential_service import UserCredentialService
 from models.schemas.user_credential import UserAuthentication
 from providers.base_credential_connector import BaseCredentialConnector
+from config import settings
 
 
 class GoogleConnector(BaseCredentialConnector):
@@ -21,13 +21,8 @@ class GoogleConnector(BaseCredentialConnector):
         scopes = body["scopes"]
         provider_lower = provider.lower()
 
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
-        
-        if not client_id:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
-        if not redirect_uri:
-            raise ValueError("Missing environment variable: GOOGLE_REDIRECT_URI")
+        client_id = settings.google_client_id
+        redirect_uri = settings.google_redirect_uri
 
         scope_str = " ".join(scopes)
 
@@ -57,16 +52,9 @@ class GoogleConnector(BaseCredentialConnector):
             raise HTTPException(status_code=400, detail="Invalid state parameter")
         
         token_endpoint = "https://oauth2.googleapis.com/token"
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
-        
-        if not client_id:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_ID")
-        if not client_secret:
-            raise ValueError("Missing environment variable: GOOGLE_CLIENT_SECRET")
-        if not redirect_uri:
-            raise ValueError("Missing environment variable: GOOGLE_REDIRECT_URI")
+        client_id = settings.google_client_id
+        client_secret = settings.google_client_secret
+        redirect_uri = settings.google_redirect_uri
 
         data = {
             "code": code,
@@ -92,10 +80,7 @@ class GoogleConnector(BaseCredentialConnector):
         self.credential_service.create_or_update_credential(UserAuthentication(**cred_data))
 
         # Redirect to frontend OAuth success page
-        frontend_url = os.getenv("FRONTEND_URL")
-        if not frontend_url:
-            raise ValueError("Missing environment variable: FRONTEND_URL")
-        frontend_url = frontend_url + "/oauth-success"
+        frontend_url = settings.frontend_url.split(",")[0].strip() + "/oauth-success"
         query = urllib.parse.urlencode({"provider": provider})
         return RedirectResponse(f"{frontend_url}?{query}")
 

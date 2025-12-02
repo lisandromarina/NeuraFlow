@@ -3,8 +3,8 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from datetime import datetime
-import os
 from dependencies import get_db_session
+from config import settings
 from repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
 from repositories.sqlalchemy_workflow_repository import SqlAlchemyWorkflowRepository
 from models.db_models.user_credentials_db import UserCredentialDB
@@ -13,10 +13,8 @@ from models.db_models.workflow_db import WorkflowDB
 from models.db_models.workflow_connections_db import WorkflowConnection
 from sqlalchemy.orm import Session
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError("Missing environment variable: SECRET_KEY")
-ALGORITHM = "HS256"
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # login endpoint
 
@@ -31,7 +29,7 @@ def get_current_user(
     Returns user info with user_id and email.
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[settings.algorithm])
         
         # Check expiration
         exp = payload.get("exp")

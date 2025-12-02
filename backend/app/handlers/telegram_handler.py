@@ -1,20 +1,18 @@
-import os
 import json
 import httpx
 from handlers.base_node_handler import BaseNodeHandler
 from services.redis_service import RedisService
 from utils.token_security import decrypt_credentials
+from config import settings
 
 
 class TelegramTriggerHandler(BaseNodeHandler):
     def __init__(self, redis_service: RedisService):
         self.redis_service: RedisService = redis_service
-        self.ngrok_url = os.getenv("NGROK_URL")
-        if not self.ngrok_url:
-            raise ValueError("Missing environment variable: NGROK_URL")
-        
+        if not settings.ngrok_url:
+            raise ValueError("Missing environment variable: NGROK_URL (required for Telegram webhooks)")
         # Remove trailing slash if present
-        self.ngrok_url = self.ngrok_url.rstrip('/')
+        self.ngrok_url = settings.ngrok_url.rstrip('/')
 
     def _decrypt_bot_token(self, encrypted_token: str) -> str:
         """Decrypt the bot token from the encrypted format"""

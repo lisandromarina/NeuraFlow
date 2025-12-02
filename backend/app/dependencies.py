@@ -9,19 +9,12 @@ from repositories.sqlalchemy_user_credential_repository import SqlAlchemyUserCre
 from repositories.sqlalchemy_workflow_connection_repository import SqlAlchemyWorkflowConnectionRepository
 from models.db_models.workflow_db import Base
 from redis import Redis # type: ignore
-import os
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("Missing environment variable: DATABASE_URL")
+from config import settings
 
 # 1. Create engine and session
-# Use environment variable to control echo mode (default: False for production)
-DB_ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
-
 engine = create_engine(
-    DATABASE_URL,
-    echo=DB_ECHO,  # Disable in production, enable via DB_ECHO=true env var for development
+    settings.database_url,
+    echo=settings.db_echo,  # Disable in production, enable via DB_ECHO=true env var for development
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,  # Verify connections before using
@@ -62,7 +55,4 @@ def get_workflow_connection_repository(db=Depends(get_db_session)):
     return SqlAlchemyWorkflowConnectionRepository(db)
 
 def get_redis_client() -> Redis:
-    REDIS_URL = os.getenv("REDIS_URL")
-    if not REDIS_URL:
-        raise ValueError("Missing environment variable: REDIS_URL")
-    return Redis.from_url(REDIS_URL)
+    return Redis.from_url(settings.redis_url)

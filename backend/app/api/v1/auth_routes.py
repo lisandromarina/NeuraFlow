@@ -10,16 +10,8 @@ from models.schemas.user import UserCreate, UserRead
 from datetime import datetime, timedelta
 from jose import jwt, JWTError # type: ignore
 from urllib.parse import urlencode
-import os
 import requests
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError("Missing environment variable: SECRET_KEY")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-if not ACCESS_TOKEN_EXPIRE_MINUTES:
-    raise ValueError("Missing environment variable: ACCESS_TOKEN_EXPIRE_MINUTES")
+from config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -40,7 +32,7 @@ def login(user: UserCreate, service: UserService = Depends(get_user_service)):
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
 
     payload = {
         "sub": db_user.email,
@@ -48,7 +40,7 @@ def login(user: UserCreate, service: UserService = Depends(get_user_service)):
         "exp": expire
     }
 
-    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
     return {"access_token": token, "token_type": "bearer"}
 
 @router.get("/validate-token")
@@ -63,7 +55,7 @@ def validate_token(authorization: str = Header(...)):
     token = authorization.split(" ")[1]
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         exp = payload.get("exp")
 
         if exp is None or datetime.utcnow().timestamp() > exp:
@@ -81,11 +73,8 @@ def google_login():
     Initiates Google OAuth flow for user authentication.
     Redirects to Google OAuth consent screen.
     """
-    client_id = os.getenv("GOOGLE_CLIENT_ID")
-    redirect_uri = os.getenv("GOOGLE_AUTH_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
-    
-    if not client_id:
-        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    client_id = settings.google_client_id
+    redirect_uri = settings.google_auth_redirect_uri or "http://localhost:8000/auth/google/callback"
     
     # Basic scopes for authentication (email and profile)
     scopes = [
@@ -111,12 +100,9 @@ def google_callback(code: str, service: UserService = Depends(get_user_service))
     Handles Google OAuth callback.
     Exchanges code for tokens, gets user info, creates/authenticates user.
     """
-    client_id = os.getenv("GOOGLE_CLIENT_ID")
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-    redirect_uri = os.getenv("GOOGLE_AUTH_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
-    
-    if not client_id or not client_secret:
-        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    client_id = settings.google_client_id
+    client_secret = settings.google_client_secret
+    redirect_uri = settings.google_auth_redirect_uri or "http://localhost:8000/auth/google/callback"
     
     # Exchange code for tokens
     token_endpoint = "https://oauth2.googleapis.com/token"
@@ -158,14 +144,14 @@ def google_callback(code: str, service: UserService = Depends(get_user_service))
         db_user = service.register_user(email, random_password)
     
     # Generate JWT token
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {
         "sub": db_user.email,
         "user_id": db_user.id,
         "exp": expire
     }
-    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
     
     # Redirect to frontend workflow page with token
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    frontend_url = settings.frontend_url.split(",")[0].strip()  # Use first URL if multiple
     return RedirectResponse(f"{frontend_url}/oauth-success?token={token}")

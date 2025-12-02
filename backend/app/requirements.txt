@@ -3,6 +3,7 @@ uvicorn[standard]
 SQLAlchemy
 psycopg2-binary
 pydantic[email]==2.8.0
+pydantic-settings
 requests
 redis>=5.0.0
 python-jose[cryptography]

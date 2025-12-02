@@ -1,15 +1,12 @@
 import redis
-import os
+from config import settings
 
 class RedisRepository:
     def __init__(self, redis_url=None):
         if redis_url:
             self.r = redis.Redis.from_url(redis_url)
         else:
-            redis_url = os.getenv("REDIS_URL")
-            if not redis_url:
-                raise ValueError("Missing environment variable: REDIS_URL")
-            self.r = redis.Redis.from_url(redis_url)
+            self.r = redis.Redis.from_url(settings.redis_url)
 
     def zadd(self, key, mapping):
         self.r.zadd(key, mapping)

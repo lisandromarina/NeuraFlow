@@ -1,18 +1,14 @@
-import os
 from repositories.redis_repository import RedisRepository
 from services.redis_service import RedisService
 from services.scheduler_runner import SchedulerRunner
 from services.workflow_event_handler import WorkflowEventHandler
 from services.scheduler_service import SchedulerService
 from services.node_processor_service import NodeProcessorService  # renamed service
-
-REDIS_URL = os.getenv("REDIS_URL")
-if not REDIS_URL:
-    raise ValueError("Missing environment variable: REDIS_URL")
+from config import settings
 
 if __name__ == "__main__":
     # Redis repo
-    redis_repo = RedisRepository(REDIS_URL)
+    redis_repo = RedisRepository(settings.redis_url)
     # Core services
     scheduler_service = SchedulerService(redis_repo)
     redis_service = RedisService(redis_repo.r)

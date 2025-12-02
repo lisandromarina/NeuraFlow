@@ -1,18 +1,9 @@
-import base64
-import os
 import json
 from jose import jwe
+from config import settings
 
-# Load secret key from env and decode from Base64
-SECRET_KEY_B64 = os.getenv("CREDENTIALS_SECRET_KEY")
-if not SECRET_KEY_B64:
-    raise ValueError("Missing environment variable: CREDENTIALS_SECRET_KEY")
-
-SECRET_KEY = base64.urlsafe_b64decode(SECRET_KEY_B64)
-
-# Make sure the key is exactly 32 bytes
-if len(SECRET_KEY) != 32:
-    raise ValueError("CREDENTIALS_SECRET_KEY must decode to exactly 32 bytes for A256GCM")
+# Get the decoded secret key (validation already done in Settings class)
+SECRET_KEY = settings.credentials_secret_key_decoded
 
 def encrypt_credentials(creds: dict) -> str:
     """Encrypt credentials JSON and return compact string"""
