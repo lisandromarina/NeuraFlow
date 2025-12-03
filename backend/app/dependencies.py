@@ -22,8 +22,8 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
-# 2. Create tables
-Base.metadata.create_all(engine)
+# 2. Database tables are created via Alembic migrations
+# Run migrations with: alembic upgrade head
 
 # 3. DB session dependency
 def get_db_session():

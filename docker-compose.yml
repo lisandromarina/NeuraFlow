@@ -51,6 +51,25 @@ services:
       - redis
       - postgres
 
+  # Run database migrations before backend starts
+  migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: db_migrations
+    networks:
+      - app_network
+    working_dir: /app
+    env_file:
+      - ./.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mydatabase
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   backend:
     build:
       context: ./backend
@@ -73,6 +92,7 @@ services:
     depends_on:
       - redis
       - postgres
+      - migrations
 
   postgres:
     image: postgres:15
@@ -88,6 +108,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
   app_network:

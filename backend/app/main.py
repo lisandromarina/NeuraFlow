@@ -9,8 +9,22 @@ from api.v1 import credentials_routes
 from api.v1 import telegram_routes
 from config import settings
 import nodes  # SUPER NEEDED, IMPORTS AND REGISTER ALL THE NODES
+from alembic.config import Config
+from alembic import command
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def run_migrations():
+    """Run database migrations on startup."""
+    try:
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+    except Exception as e:
+        # Log error but don't crash the app - migrations can be run manually
+        print(f"Warning: Failed to run migrations on startup: {e}")
+        print("Please run migrations manually with: alembic upgrade head")
 
 # Configure CORS
 app.add_middleware(
