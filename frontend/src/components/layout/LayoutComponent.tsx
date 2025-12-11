@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../sidebar/app-sidebar";
-import Workflow from "../workflow";
+import Workflow from "../../pages/workflow";
 import { RightAppSidebar } from "../sidebar/right-app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 

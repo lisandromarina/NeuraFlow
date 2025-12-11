@@ -1,10 +1,10 @@
 import React from "react";
 import { Background, ReactFlow } from "@xyflow/react";
 import type { NodeTypes, Node } from "@xyflow/react";
-import WorkflowTogglePanel from "../ui/workflow-toggle-panel";
+import WorkflowTogglePanel from "../../components/ui/workflow-toggle-panel";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { X } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "../../components/ui/button";
 
 export interface WorkflowNodeType extends Node {
   type: string; // ensure it's defined, not optional
@@ -107,3 +107,4 @@ const WorkflowComponent: React.FC<WorkflowComponentProps> = ({
 };
 
 export default WorkflowComponent;
+

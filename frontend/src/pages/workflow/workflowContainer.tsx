@@ -1,13 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { NodeTypes } from "@xyflow/react";
 import WorkflowComponent from "./workflowComponent";
-import PlaceholderNodeDemo from "../nodes/placeholderdemo";
-import BaseHandle from "../nodes/base-handler-demo";
+import PlaceholderNodeDemo from "../../components/nodes/placeholderdemo";
+import BaseHandle from "../../components/nodes/base-handler-demo";
 import { useWorkflow } from "@/context/WorkflowContext";
-import TriggerNode from "../nodes/trigger-node";
-import GoogleSheetsNode from "../nodes/google-sheet";
-import TelegramTriggerNode from "../nodes/telegram-trigger-node";
-import LLMNode from "../nodes/llm-node";
+import TriggerNode from "../../components/nodes/trigger-node";
+import GoogleSheetsNode from "../../components/nodes/google-sheet";
+import TelegramTriggerNode from "../../components/nodes/telegram-trigger-node";
+import LLMNode from "../../components/nodes/llm-node";
 import { useWorkflowNodes } from "../../hooks/useWorkflowNodes";
 import { useWorkflowHandlers } from "../../hooks/useWorkflowHandlers";
 
@@ -151,3 +151,4 @@ const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
 };
 
 export default WorkflowContainer;
+
